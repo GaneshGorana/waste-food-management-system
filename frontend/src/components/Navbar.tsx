@@ -8,8 +8,8 @@ import { jwtDecode } from "jwt-decode";
 
 function Navbar() {
   const [isLogged, setIsLogged] = useState(false);
-
   const token = document.cookie.split("token=")[1]?.split(";")[0];
+
   const userData = token
     ? jwtDecode<UserType>(decodeURIComponent(token))
     : null;
@@ -72,22 +72,15 @@ function Navbar() {
           }`}
         >
           <li>
-            <Link
-              to="/donate"
-              className="block px-4 py-2 dark:text-white"
-              onClick={handleLinkClick}
-            >
-              Donate
-            </Link>
-          </li>
-          <li>
-            <Link
-              to="/track"
-              className="block px-4 py-2 dark:text-white"
-              onClick={handleLinkClick}
-            >
-              Track
-            </Link>
+            {userData?.role === "DONOR" && (
+              <Link
+                to="/donate"
+                className="block px-4 py-2 dark:text-white"
+                onClick={handleLinkClick}
+              >
+                Donate
+              </Link>
+            )}
           </li>
           <li>
             {isLogged ? (

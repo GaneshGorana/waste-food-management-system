@@ -31,7 +31,7 @@ export const foodState = createSlice({
     updateDonorDetailsInFood: (state, action) => {
       const { _id, donorDetails } = action.payload;
       state.data = state.data.map((doc) => {
-        if (doc._id === _id) {
+        if (doc.donorId === _id) {
           return { ...doc, donorDetails };
         }
         return doc;
@@ -42,7 +42,7 @@ export const foodState = createSlice({
     updateServiceWorkerDetailsInFood: (state, action) => {
       const { _id, serviceWorkerDetails } = action.payload;
       state.data = state.data.map((doc) => {
-        if (doc._id === _id) {
+        if (doc.acceptedById === _id) {
           return { ...doc, serviceWorkerDetails };
         }
         return doc;

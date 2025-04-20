@@ -33,7 +33,9 @@ export async function foodAdd(req, res) {
             foodAddress: req.body.foodAddress,
             madeDate: req.body.madeDate,
             expiryDate: req.body.expiryDate,
-            foodType: req.body.foodType
+            foodType: req.body.foodType,
+            latitude: parseFloat(req.body.latitude),
+            longitude: parseFloat(req.body.longitude),
         })
 
         if (!food) {
@@ -100,7 +102,7 @@ export async function foodUpdate(req, res) {
             return ApiError(res, 500, "Error while updating food details", "error");
         }
 
-        return ApiResponse(res, 200, "Food details updated successfully", null, "success");
+        return ApiResponse(res, 200, "Food details updated successfully", updatedFood, "success");
     } catch (error) {
         console.log("Error while updating food:", error);
         return ApiError(res, 500, "Error while updating food", "error");
@@ -175,6 +177,10 @@ export const foodDeliveryAccept = async (req, res) => {
 
         if (existsFoodDelivery?.deliveryStatus === "ACCEPTED") {
             return ApiResponse(res, 200, "Food already accepted", null, "info");
+        }
+
+        if (existsFoodDelivery?.deliveryStatus == "DELIVERED" || existsFoodDelivery?.deliveryStatus == "COLLECTED") {
+            return ApiError(res, 400, "You can not accept more than one food", "info");
         }
 
         const delivery = await FoodDelivery.findOneAndUpdate({ food: food._id }, {

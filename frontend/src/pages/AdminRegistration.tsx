@@ -17,14 +17,16 @@ function AdminRegisteration() {
     address: "",
     pincode: "",
   });
-  const [error, setError] = useState("");
-  const [result, setResult] = useState("");
+  const [error, setError] = useState<ApiError>();
+  const [result, setResult] = useState<ApiResult>();
 
-  const handleChange = (e) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const handleUserRegistration = async (e) => {
+  const handleUserRegistration = async (
+    e: React.FormEvent<HTMLFormElement>
+  ) => {
     e.preventDefault();
     try {
       if (formData.password !== formData.confirmPassword) {
@@ -48,26 +50,28 @@ function AdminRegisteration() {
         pincode: "",
       });
       if (result.status === 201) {
-        setError("");
+        setError(undefined);
         setResult(result.data);
         navigate("/admin/login");
       }
     } catch (error) {
-      console.error("Error registering admin:", error);
-      setResult("");
-      setError(error.response?.data);
+      if (axios.isAxiosError(error)) {
+        setResult(undefined);
+        console.error("Error registering admin:", error);
+        setError(error.response?.data as ApiError);
+      }
     }
   };
   return (
     <div className="mt-14 flex items-center justify-center min-h-screen bg-gray-100 dark:bg-slate-800">
       {(error || result) && (
         <AlertBox
-          message={error?.message || result?.message}
+          message={error?.message || result?.message || ""}
           onClose={() => {
-            setError("");
-            setResult("");
+            setError(undefined);
+            setResult(undefined);
           }}
-          messageType={error?.messageType || result?.messageType}
+          messageType={error?.messageType || result?.messageType || "info"}
         />
       )}
       <div className="bg-white dark:bg-slate-700 p-8 rounded-lg shadow-lg w-full max-w-md">
@@ -164,8 +168,8 @@ function AdminRegisteration() {
             to="/admin/login"
             className="cursor-pointer text-blue-500 dark:text-blue-400 ml-1"
             onClick={() => {
-              setError("");
-              setResult("");
+              setError(undefined);
+              setResult(undefined);
             }}
           >
             Login Admin

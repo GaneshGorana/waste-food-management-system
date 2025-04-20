@@ -1,5 +1,4 @@
 import Admin from "../models/admin.js";
-import Organization from "../models/organization.js";
 import ServiceWorker from "../models/serviceWorker.js";
 import User from "../models/user.js";
 import ApiError from "../utils/ApiError.js";
@@ -36,23 +35,6 @@ export const getAccountDataByIdOfServiceWorker = async (req, res) => {
     } catch (error) {
         console.log("get service worker details error :", error);
         return ApiError(res, 400, "Error in fetching service worker details", "error")
-    }
-}
-
-export const getAccountDataByIdOfOrganization = async (req, res) => {
-    try {
-        const { _id } = req.body;
-        if (!_id) {
-            return ApiError(res, 400, "Please provide organization id", "warning")
-        }
-        const user = await Organization.findById(_id).select("-password -__v -updatedAt -createdAt").lean();
-        if (!user) {
-            return ApiError(res, 400, "Organization not found", "info")
-        }
-        return ApiResponse(res, 200, "Organization details fetched successfully", user, "success")
-    } catch (error) {
-        console.log("get organization details error :");
-        return ApiError(res, 400, "Error in fetching organization details", "error")
     }
 }
 

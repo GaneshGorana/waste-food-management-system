@@ -6,7 +6,6 @@ import AlertBox from "@/components/AlertBox";
 
 function Login() {
   const [formData, setFormData] = useState({ email: "", password: "" });
-  const [isOrganization, setIsOrganization] = useState(false);
   const [formError, setFormError] = useState<ApiError>();
   const [result, setResult] = useState<ApiResult>();
   const navigate = useNavigate();
@@ -17,33 +16,18 @@ function Login() {
   const handleUserLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     try {
-      if (isOrganization) {
-        const result = await axios.post(
-          `${
-            import.meta.env.VITE_BACKEND_ORIGIN_URL
-          }/api/auth/organization/login`,
-          formData,
-          { withCredentials: true }
-        );
-        if (result.status === 200) {
-          setFormError(undefined);
-          setResult(result.data);
-          window.dispatchEvent(new Event("cookieRefresh"));
-          navigate("/dashboard/organization");
-        }
-      } else {
-        const result = await axios.post(
-          `${import.meta.env.VITE_BACKEND_ORIGIN_URL}/api/auth/user/login`,
-          formData,
-          { withCredentials: true }
-        );
-        if (result.status === 200) {
-          setFormError(undefined);
-          setResult(result.data);
-          window.dispatchEvent(new Event("cookieRefresh"));
-          navigate("/dashboard/user");
-        }
+      const result = await axios.post(
+        `${import.meta.env.VITE_BACKEND_ORIGIN_URL}/api/auth/user/login`,
+        formData,
+        { withCredentials: true }
+      );
+      if (result.status === 200) {
+        setFormError(undefined);
+        setResult(result.data);
+        window.dispatchEvent(new Event("cookieRefresh"));
+        navigate("/dashboard/user");
       }
+
       setFormData({ email: "", password: "" });
     } catch (error) {
       setResult(undefined);
@@ -75,28 +59,6 @@ function Login() {
         <h2 className="text-2xl font-bold text-center mb-6 dark:text-white">
           Login
         </h2>
-        <div className="flex justify-center mb-4">
-          <button
-            onClick={() => setIsOrganization(false)}
-            className={`px-4 py-2 mx-2 rounded-md cursor-pointer transition-all duration-500 ${
-              !isOrganization
-                ? "bg-blue-500 text-white"
-                : "bg-gray-300 dark:bg-gray-600 dark:text-white"
-            }`}
-          >
-            User
-          </button>
-          <button
-            onClick={() => setIsOrganization(true)}
-            className={`px-4 py-2 mx-2 rounded-md cursor-pointer transition-all duration-500 ${
-              isOrganization
-                ? "bg-blue-500 text-white"
-                : "bg-gray-300 dark:bg-gray-600 dark:text-white"
-            }`}
-          >
-            Organization
-          </button>
-        </div>
         <form onSubmit={(e) => handleUserLogin(e)} className="space-y-4">
           <input
             type="email"

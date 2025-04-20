@@ -13,11 +13,17 @@ import {
   updateFood,
   deleteFood,
   clearDataFood,
+  updateServiceWorkerDetailsInFood,
 } from "../features/dashboardData/food.js";
 import { RootState } from "@/store/foodStore.js";
 import LoadingScreen from "@/components/LoadingScreen.js";
 import AlertConfirmBox from "@/components/AlertConfirmBox.js";
 import { jwtDecode } from "jwt-decode";
+import { usePagination } from "@/hooks/usePagination.js";
+import {
+  clearAllCounts,
+  setDonorStateCounts,
+} from "@/features/dashboardData/count.js";
 
 function DonorDashboard() {
   const navigate = useNavigate();
@@ -25,11 +31,19 @@ function DonorDashboard() {
   const userData = token
     ? jwtDecode<UserType>(decodeURIComponent(token))
     : null;
-  const [counts, setCounts] = useState<{
+
+  interface CountsType {
     totalDonations: number;
     pendingDonations: number;
     collectedDonations: number;
-  }>();
+  }
+
+  const [counts, setCounts] = useState<CountsType>({
+    totalDonations: 0,
+    pendingDonations: 0,
+    collectedDonations: 0,
+  });
+
   const [foods, setFoods] = useState<FoodType[]>();
   const [menuOpen, setMenuOpen] = useState(false);
   const [error, setError] = useState<ApiError>();
@@ -45,8 +59,6 @@ function DonorDashboard() {
     totalDocs: number;
   }>({ page: 1, totalPages: 1, totalDocs: 1 });
   const dispatch = useDispatch();
-
-  const visitedPagesRef = useRef(new Set<number>());
 
   const [isLoading, setIsLoading] = useState<{
     isLoading: boolean;
@@ -70,8 +82,21 @@ function DonorDashboard() {
     }
   }, [navigate]);
 
+  const {
+    visitedPagesDonor,
+    addVisitedPagesDonor,
+    deleteVisitedPagesDonor,
+    clearVisitedPagesDonor,
+  } = usePagination();
+
+  const paginationStateData = visitedPagesDonor;
+
   const foodStateData = useSelector((state: RootState) => state.food.data);
   const foodStateDataRef = useRef(foodStateData);
+
+  const countStateData = useSelector(
+    (state: RootState) => state.count.donorCounts
+  );
 
   useEffect(() => {
     foodStateDataRef.current = foodStateData;
@@ -79,7 +104,7 @@ function DonorDashboard() {
 
   const fetchDonorDashboard = useCallback(
     async (page = 1, limit = 10) => {
-      if (visitedPagesRef.current.has(page)) {
+      if (paginationStateData.has(page)) {
         const paginatedData = foodStateData.slice(
           (page - 1) * limit,
           page * limit
@@ -89,9 +114,10 @@ function DonorDashboard() {
           ...prev,
           page: page,
         }));
+        setCounts(countStateData as unknown as CountsType);
         return;
       }
-      visitedPagesRef.current.add(page);
+      addVisitedPagesDonor(page);
       try {
         const { data } = await axios.get(
           `${
@@ -99,14 +125,16 @@ function DonorDashboard() {
           }/api/dashboard/donor?page=${page}&limit=${limit}`,
           { withCredentials: true }
         );
-        setFoods(data.data.foodDonations);
         setCounts(data.data.counts);
         setPagination(data.data.pagination);
+        setFoods(data.data.foodDonations);
         dispatch(
           addFood({
             data: data.data.foodDonations,
           })
         );
+
+        dispatch(setDonorStateCounts(data.data.counts));
         return;
       } catch (error) {
         if (axios.isAxiosError(error)) {
@@ -116,13 +144,17 @@ function DonorDashboard() {
         }
       }
     },
-    [dispatch, foodStateData]
+    [
+      addVisitedPagesDonor,
+      countStateData,
+      dispatch,
+      foodStateData,
+      paginationStateData,
+    ]
   );
 
   useEffect(() => {
-    if (!visitedPagesRef.current.has(pagination.page)) {
-      fetchDonorDashboard(pagination.page, 10);
-    }
+    fetchDonorDashboard(pagination.page, 10);
   }, [fetchDonorDashboard, pagination.page]);
 
   const filterMapOfFoods = {
@@ -149,6 +181,8 @@ function DonorDashboard() {
         setError(undefined);
         setResult(result.data);
         dispatch(clearDataFood());
+        dispatch(clearAllCounts());
+        clearVisitedPagesDonor();
         navigate("/");
       }
       dispatch(clearDataFood());
@@ -283,7 +317,9 @@ function DonorDashboard() {
 
           const newFood = data.data.foodDonations[0];
           if (!newFood) return;
+
           dispatch(addFood({ data: [newFood] }));
+          dispatch(setDonorStateCounts(data.data.counts));
 
           for (let i = 0; i < pagination.totalPages; i++) {
             const startIdx = i * limit;
@@ -324,7 +360,9 @@ function DonorDashboard() {
           const updatedFood = data.data.foodDonations[0];
 
           dispatch(updateFood({ _id: updatedFood._id, data: updatedFood }));
+          dispatch(setDonorStateCounts(data.data.counts));
 
+          setCounts(data.data?.counts);
           setFoods((prev) =>
             prev?.map((food) =>
               food._id === value.foodId ? updatedFood : food
@@ -371,7 +409,7 @@ function DonorDashboard() {
             (page - 1) * limit
           );
           setFoods(newData);
-          visitedPagesRef.current.delete(page);
+          deleteVisitedPagesDonor(page);
         } else {
           setFoods(updatedFoodData);
           setPagination((prev) => ({
@@ -381,7 +419,13 @@ function DonorDashboard() {
         }
       }
     },
-    [dispatch, foodStateData, pagination.page, pagination.totalPages]
+    [
+      deleteVisitedPagesDonor,
+      dispatch,
+      foodStateData,
+      pagination.page,
+      pagination.totalPages,
+    ]
   );
 
   useEffect(() => {
@@ -401,9 +445,64 @@ function DonorDashboard() {
     };
   }, [trackFoodEventAndUpdateState, socket]);
 
+  const trackServiceWorkerEventAndUpdateState = useCallback(
+    async (value: { serviceWorkerId: string }) => {
+      try {
+        const { data } = await axios.post(
+          `${
+            import.meta.env.VITE_BACKEND_ORIGIN_URL
+          }/api/get-account-data/service-worker`,
+          { _id: value.serviceWorkerId },
+          { withCredentials: true }
+        );
+
+        const serviceWorker = data.data as ServiceWorkerType;
+
+        const updatedServiceWorkerData = {
+          acceptedById: serviceWorker._id,
+          acceptedBy: serviceWorker.name,
+        };
+
+        dispatch(
+          updateServiceWorkerDetailsInFood({
+            _id: serviceWorker._id,
+            data: updatedServiceWorkerData,
+          })
+        );
+
+        setFoods((prev) =>
+          prev?.map((food) =>
+            food.acceptedById === value.serviceWorkerId
+              ? {
+                  ...food,
+                  ...updatedServiceWorkerData,
+                }
+              : food
+          )
+        );
+      } catch (error) {
+        if (axios.isAxiosError(error)) {
+          console.error("Error fetching updated service worker:", error);
+          setResult(undefined);
+          setError(error.response?.data as ApiError);
+        }
+      }
+    },
+    [dispatch]
+  );
+
+  useEffect(() => {
+    socket?.on("serviceWorkerUpdated", (data) => {
+      trackServiceWorkerEventAndUpdateState(data);
+    });
+
+    return () => {
+      socket?.off("serviceWorkerUpdated");
+    };
+  }, [socket, trackServiceWorkerEventAndUpdateState]);
+
   return (
     <div className="min-h-screen bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white p-4 mt-14 sm:mt-14 md:mt-18">
-      {/* Header */}
       <LoadingScreen isLoading={isLoading.isLoading} text={isLoading.text} />
       {(error || result) && (
         <AlertBox
@@ -417,8 +516,6 @@ function DonorDashboard() {
       )}
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold">Donor Dashboard</h1>
-
-        {/* Hamburger Menu */}
         <div className="relative">
           <button
             onClick={() => setMenuOpen(!menuOpen)}
@@ -430,8 +527,6 @@ function DonorDashboard() {
               <Menu className="w-6 h-6 text-gray-800 dark:text-white" />
             )}
           </button>
-
-          {/* Dropdown Menu */}
           {menuOpen && (
             <div className="z-10 absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 shadow-lg rounded-lg border border-gray-300 dark:border-gray-700">
               <button
@@ -494,8 +589,6 @@ function DonorDashboard() {
           )}
         </div>
       </div>
-
-      {/* Stats Section */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         <DashboardCard
           text="Total Donations"
@@ -555,8 +648,6 @@ function DonorDashboard() {
           Icon={Settings2}
         />
       </div>
-
-      {/* Donations Table */}
       <div className="bg-white dark:bg-gray-900 p-6 rounded-xl shadow-lg mt-6">
         <div className="items-center mb-6 relative">
           <h3 className="text-xl font-semibold text-gray-900 dark:text-white text-center w-full">
@@ -569,12 +660,38 @@ function DonorDashboard() {
           actions={{
             activate: {
               label: "Update",
-              handler: (food) => handleToggleEditMode(food as FoodType),
+              handler: (food) => {
+                if (food?.status !== "PENDING") {
+                  setAlertConfirmMessage({
+                    message: "You can only update food if it is not accepted.",
+                    messageType: "warning",
+                    cancelText: "Cancel",
+                    confirmText: "OK",
+                    onConfirm: () => {
+                      setAlertConfirmMessage(null);
+                    },
+                  });
+                  return;
+                }
+                handleToggleEditMode(food as FoodType);
+              },
               color: "bg-green-500 text-white",
             },
             delete: {
               label: "Delete",
               handler: (food) => {
+                if (food?.status !== "PENDING") {
+                  setAlertConfirmMessage({
+                    message: "Food can not be deleted after got accepted.",
+                    messageType: "warning",
+                    cancelText: "Cancel",
+                    confirmText: "OK",
+                    onConfirm: () => {
+                      setAlertConfirmMessage(null);
+                    },
+                  });
+                  return;
+                }
                 setAlertConfirmMessage({
                   message: "Are you sure you want to delete this food?",
                   messageType: "info",
@@ -590,6 +707,7 @@ function DonorDashboard() {
             },
           }}
           onPageChange={(newPage) => fetchDonorDashboard(newPage, 10)}
+          who="DONOR"
         />
       </div>
       {isEditModeOpen && thingValue && (

@@ -1,3 +1,4 @@
+import { jwtDecode } from "jwt-decode";
 import { useState } from "react";
 
 type EditBoxPropTypes = {
@@ -27,12 +28,23 @@ const EditBox = ({
 }: EditBoxPropTypes) => {
   const [formData, setFormData] = useState(data);
 
+  const token = document.cookie.split("token=")[1]?.split(";")[0];
+  const userData = token
+    ? jwtDecode<UserType>(decodeURIComponent(token))
+    : null;
+
   const readOnlyFields = [
-    "foodDeliverAddress",
+    userData?.role === "ADMIN" ? "_id" : "foodDeliverAddress",
     "acceptedBy",
     "role",
     "accountStatus",
     "acceptedById",
+    "profilePic",
+    "foodImage",
+    "latitude",
+    "longitude",
+    "foodType",
+    "status",
   ];
 
   const handleChange = (
@@ -68,6 +80,14 @@ const EditBox = ({
         <form onSubmit={handleSubmit} className="space-y-4">
           {Object.keys(formData).map((key) => {
             if (key === "_id") return null;
+            if (key === "foodDeliverAddress") {
+              if (userData?.role !== "ADMIN") {
+                return;
+              }
+            }
+            if (key === "foodImage" || key === "profilePic") {
+              return;
+            }
 
             const value = formData[key as keyof typeof formData];
             const isEditable = !readOnlyFields.includes(key);

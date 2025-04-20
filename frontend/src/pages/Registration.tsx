@@ -5,7 +5,6 @@ import { useNavigate } from "react-router-dom";
 import AlertBox from "../components/AlertBox";
 
 function Registeration() {
-  const [isOrganization, setIsOrganization] = useState(false);
   const navigate = useNavigate();
   const [formError, setFormError] = useState<ApiError>();
   const [result, setResult] = useState<ApiResult>();
@@ -38,28 +37,14 @@ function Registeration() {
         });
         return;
       }
-      if (isOrganization) {
-        const result = await axios.post(
-          `${
-            import.meta.env.VITE_BACKEND_ORIGIN_URL
-          }/api/auth/organization/register`,
-          formData
-        );
-        if (result.status === 201) {
-          setFormError(undefined);
-          setResult(result.data);
-          navigate("/login");
-        }
-      } else {
-        const result = await axios.post(
-          `${import.meta.env.VITE_BACKEND_ORIGIN_URL}/api/auth/user/register`,
-          formData
-        );
-        if (result.status === 201) {
-          setFormError(undefined);
-          setResult(result.data);
-          navigate("/login");
-        }
+      const result = await axios.post(
+        `${import.meta.env.VITE_BACKEND_ORIGIN_URL}/api/auth/user/register`,
+        formData
+      );
+      if (result.status === 201) {
+        setFormError(undefined);
+        setResult(result.data);
+        navigate("/login");
       }
       setFormData({
         name: "",
@@ -108,66 +93,20 @@ function Registeration() {
         <h2 className="text-2xl font-bold text-center mb-6 dark:text-white">
           Register
         </h2>
-        <div className="flex justify-center mb-4">
-          <button
-            onClick={() => setIsOrganization(false)}
-            className={`px-4 py-2 mx-2 rounded-md cursor-pointer transition-all duration-500 ${
-              !isOrganization
-                ? "bg-blue-500 text-white"
-                : "bg-gray-300 dark:bg-gray-600 dark:text-white"
-            }`}
-          >
-            User
-          </button>
-          <button
-            onClick={() => setIsOrganization(true)}
-            className={`px-4 py-2 mx-2 rounded-md cursor-pointer transition-all duration-500 ${
-              isOrganization
-                ? "bg-blue-500 text-white"
-                : "bg-gray-300 dark:bg-gray-600 dark:text-white"
-            }`}
-          >
-            Organization
-          </button>
-        </div>
         <form
           onSubmit={(e) => handleUserRegistration(e)}
           method="POST"
           className="space-y-4"
         >
-          {!isOrganization && (
-            <input
-              type="text"
-              name="name"
-              placeholder="Full Name"
-              value={formData.name}
-              onChange={handleChange}
-              className="w-full p-2 border rounded bg-white dark:bg-slate-600 dark:text-white dark:border-gray-600"
-              required
-            />
-          )}
-          {isOrganization && (
-            <div className="transition-all duration-300 ease-in-out">
-              <input
-                type="text"
-                name="organizationName"
-                placeholder="Organization Name"
-                value={formData.organizationName}
-                onChange={handleChange}
-                className="w-full p-2 border rounded bg-white dark:bg-slate-600 dark:text-white dark:border-gray-600"
-                required
-              />
-              <input
-                type="text"
-                name="organizationNumber"
-                placeholder="Corporate Identification Number (CIN)"
-                value={formData.organizationNumber}
-                onChange={handleChange}
-                className="w-full p-2 border rounded mt-4 bg-white dark:bg-slate-600 dark:text-white dark:border-gray-600"
-                required
-              />
-            </div>
-          )}
+          <input
+            type="text"
+            name="name"
+            placeholder="Full Name"
+            value={formData.name}
+            onChange={handleChange}
+            className="w-full p-2 border rounded bg-white dark:bg-slate-600 dark:text-white dark:border-gray-600"
+            required
+          />
           <input
             type="text"
             name="state"

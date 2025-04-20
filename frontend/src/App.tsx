@@ -1,7 +1,6 @@
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import Home from "./pages/Home";
 import Donate from "./pages/Donate";
-// import Track from "./pages/Track";
 import Login from "./pages/Login";
 import Registration from "./pages/Registration";
 import Navbar from "./components/Navbar";
@@ -16,6 +15,7 @@ import AdminDashboard from "./pages/AdminDashboard";
 import NearbyPlaces from "./pages/NearbyPlaces";
 import ManageAccount from "./components/ManageAccount";
 import ProtectedRoute from "./utility/ProtectedRoute";
+import TrackFood from "./components/TrackFood";
 
 function App() {
   return (
@@ -39,6 +39,7 @@ function App() {
                 element={<ServiceWorkerDashboard />}
               />
               <Route path="/dashboard/admin" element={<AdminDashboard />} />
+              <Route path="/track-food" element={<TrackFood />} />
             </Route>
             <Route
               path="/service-worker/register"

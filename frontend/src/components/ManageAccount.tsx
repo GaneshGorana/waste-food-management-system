@@ -35,6 +35,9 @@ const ManageAccount: React.FC = () => {
     text: string;
   }>({ isLoading: false, text: "" });
 
+  const [selectedImagePreview, setSelectedImagePreview] =
+    useState<UserType["profilePic"]>();
+
   const [alertConfirmMessage, setAlertConfirmMessage] = useState<{
     message: string;
     messageType: "success" | "info" | "warning" | "error";
@@ -360,8 +363,9 @@ const ManageAccount: React.FC = () => {
           <div className="flex flex-col items-center">
             <img
               src={formData.profilePic || "/default-profile.png"}
+              onClick={() => setSelectedImagePreview(formData?.profilePic)}
               alt="Profile"
-              className="w-32 lg:w-40 h-32 lg:h-40 rounded-full border-4 border-gray-300 dark:border-gray-600 object-cover"
+              className="cursor-pointer w-32 lg:w-40 h-32 lg:h-40 rounded-full border-4 border-gray-300 dark:border-gray-600 object-cover"
             />
 
             <div className="flex flex-col items-center gap-2 mt-3 w-full">
@@ -496,6 +500,23 @@ const ManageAccount: React.FC = () => {
           }
           onClose={() => setAlertConfirmMessage(null)}
         />
+      )}
+      {selectedImagePreview && (
+        <div className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm flex items-center justify-center">
+          <div className="relative">
+            <img
+              src={selectedImagePreview}
+              alt="Preview"
+              className="max-h-[90vh] w-auto rounded-lg shadow-xl transition-transform duration-300"
+            />
+            <button
+              onClick={() => setSelectedImagePreview(undefined)}
+              className="cursor-pointer absolute top-2 right-2 bg-red-600 hover:bg-red-700 text-white rounded-full w-8 h-8 flex items-center justify-center shadow-md"
+            >
+              ✕
+            </button>
+          </div>
+        </div>
       )}
     </div>
   );

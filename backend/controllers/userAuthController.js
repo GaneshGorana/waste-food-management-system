@@ -3,7 +3,6 @@ import bcrypt from 'bcryptjs'
 import { setUser } from "../jwt/userAuthJWT.js"
 import ApiError from "../utils/ApiError.js"
 import ApiResponse from "../utils/ApiResponse.js"
-// import imageKitUpload from "../utils/ImageKitUpload.js"
 
 export const userRegister = async (req, res) => {
     if (!req.body) {
@@ -101,6 +100,10 @@ export const userProfilePicUpload = async (req, res) => {
         });
         const fileBuffer = await fs.readFile(req.file.path);
         const result = await imageKitUpload.upload({ file: fileBuffer, fileName: req.file.originalname, folder: "user", isPublished: true });
+
+        if (!result) {
+            return ApiError(res, 400, "Error in uploading profile picture 2", "error")
+        }
 
         await fs.unlink(req.file.path, (err) => {
             if (err) {

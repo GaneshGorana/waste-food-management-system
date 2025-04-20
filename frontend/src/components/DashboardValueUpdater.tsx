@@ -18,12 +18,10 @@ const DashboardValueUpdater = ({
   onClose,
   type,
 }: DashboardValueUpdaterPropTypes) => {
-  // Initialize state for multiple inputs
   const [inputValues, setInputValues] = useState<Record<string, string>>(
     fields.reduce((acc, field) => ({ ...acc, [field.asValue]: "" }), {})
   );
 
-  // Handle input changes dynamically
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement>,
     fieldName: string
@@ -31,7 +29,6 @@ const DashboardValueUpdater = ({
     setInputValues({ ...inputValues, [fieldName]: e.target.value });
   };
 
-  // Handle form submission
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     onSubmit({ ...inputValues, type });

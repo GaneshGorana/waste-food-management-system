@@ -22,7 +22,7 @@ type UserType = {
   address: string;
   email: string;
   profilePic?: string;
-  role: "DONOR";
+  role: "DONOR" | "SERVICE" | "ADMIN";
 };
 
 type ServiceWorkerType = {
@@ -54,6 +54,8 @@ type FoodType = {
   foodType: "VEGETARIAN" | "NON_VEGETARIAN" | "VEGAN";
   foodDeliverAddress?: string;
   acceptedById?: string;
+  latitude?: number;
+  longitude?: number;
 };
 
 interface ErrorType {
@@ -61,3 +63,16 @@ interface ErrorType {
   message: string;
   messageType: string;
 }
+
+type NearByPlaces = {
+  _id: string;
+  placeName: string;
+  placeState: string;
+  placeCity: string;
+  placeAddress: string;
+  placePincode: number;
+  isFoodDelivered: boolean;
+  worker: string;
+  food: string;
+  organization: string;
+};

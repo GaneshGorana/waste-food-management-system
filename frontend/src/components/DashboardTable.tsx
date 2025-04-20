@@ -1,10 +1,11 @@
-import { memo } from "react";
+import { memo, useState } from "react";
 import {
   CircleChevronLeft,
   CircleChevronRight,
   PanelLeftClose,
   PanelRightClose,
 } from "lucide-react";
+import AlertConfirmBox from "./AlertConfirmBox";
 
 type DashboardTablePropTypes<T> = {
   data: T[];
@@ -16,12 +17,13 @@ type DashboardTablePropTypes<T> = {
   actions: Record<
     string,
     {
-      label: string | ((row: T) => string); // Label can be a string or a function returning a string
-      color?: string | ((row: T) => string); // Color can be a string or a function returning a string
-      handler: (row: T, extraArg?: Record<string, unknown>) => void; // Handler function for the action
-      extraArg?: Record<string, unknown>; // Optional additional arguments for the handler
+      label: string | ((row: T) => string);
+      color?: string | ((row: T) => string);
+      handler: (row: T, extraArg?: Record<string, unknown>) => void;
+      extraArg?: Record<string, unknown>;
     }
   >;
+  who?: "DONOR" | "SERVICE" | "ORGANIZATION" | "ADMIN" | "ANY";
 };
 
 interface colorType {
@@ -34,17 +36,32 @@ const DashboardTable = memo(
     pagination,
     onPageChange,
     actions = {},
+    who = "ANY",
   }: DashboardTablePropTypes<T>) => {
+    const [alertConfirmMessage, setAlertConfirmMessage] = useState<{
+      message: string;
+      messageType: "success" | "info" | "warning" | "error";
+      cancelText?: string;
+      confirmText?: string;
+      onConfirm: () => void;
+      onCancel?: () => void;
+    } | null>(null);
+
+    const [selectedImage, setSelectedImage] = useState<string | null>(null);
+
     if (!Array.isArray(data) || data.length === 0) {
       return <p className="text-center text-gray-500">No Data Available</p>;
     }
-    // Extract keys dynamically
-    const columns = Object.keys(data[0]).map((key) => ({
-      key,
-      label: key.replace(/([A-Z])/g, " $1").trim(), // Convert camelCase to readable text
-    }));
 
-    // Format function
+    const columns = Object.keys(data[0])
+      .filter(
+        (key) => key !== "latitude" && key !== "longitude" && key !== "donorId"
+      )
+      .map((key) => ({
+        key,
+        label: key.replace(/([A-Z])/g, " $1").trim(),
+      }));
+
     const formatValue = (
       key: string,
       value: string | number | null | undefined
@@ -68,25 +85,19 @@ const DashboardTable = memo(
           </span>
         );
       }
-
       if (key.includes("Date")) return new Date(value).toLocaleDateString();
-      if (key === "foodImage")
+      if (key === "latitude" || key === "longitude") return;
+      if (key === "foodImage" || key === "profilePic") {
+        const src = typeof value === "number" ? value.toString() : value;
         return (
           <img
-            src={typeof value === "number" ? value.toString() : value}
-            alt="Food"
-            className="w-12 h-12 rounded-md object-cover mx-auto"
+            src={src}
+            alt={key}
+            className="w-12 h-12 rounded-md object-cover mx-auto cursor-pointer"
+            onClick={() => setSelectedImage(src)}
           />
         );
-      if (key === "profilePic")
-        return (
-          <img
-            src={typeof value === "number" ? value.toString() : value}
-            alt="Profile Picture"
-            className="w-12 h-12 rounded-md object-cover mx-auto"
-          />
-        );
-
+      }
       if (typeof value === "boolean") return value ? "True" : "False";
       if (typeof value === "object") return JSON.stringify(value);
       return value;
@@ -110,6 +121,17 @@ const DashboardTable = memo(
                   Actions
                 </th>
               )}
+              {(who === "SERVICE" || who === "ADMIN") &&
+                data[0]?.foodName !== undefined && (
+                  <>
+                    <th className="border border-gray-400 dark:border-gray-600 p-3">
+                      Pickup Location
+                    </th>
+                    <th className="border border-gray-400 dark:border-gray-600 p-3">
+                      Delivery Location
+                    </th>
+                  </>
+                )}
             </tr>
           </thead>
           <tbody>
@@ -135,7 +157,6 @@ const DashboardTable = memo(
                     <div className="flex flex-wrap justify-center gap-3">
                       {Object.keys(actions).map((actionKey, idx) => {
                         const action = actions[actionKey];
-
                         return (
                           <button
                             type="button"
@@ -159,15 +180,114 @@ const DashboardTable = memo(
                     </div>
                   </td>
                 )}
+                {(who === "SERVICE" || who === "ADMIN") &&
+                  data[0]?.foodName !== undefined && (
+                    <>
+                      {/* Pickup Location */}
+                      <td className="border p-3">
+                        <button
+                          className="cursor-pointer bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600 transition"
+                          onClick={() => {
+                            const coord = `${row.latitude},${row.longitude}`;
+                            if (who === "SERVICE") {
+                              navigator.clipboard.writeText(coord);
+                              setAlertConfirmMessage({
+                                message:
+                                  "Coordinates copied to clipboard, go to google maps and paste it.",
+                                messageType: "success",
+                                cancelText: "Close",
+                                confirmText: "Ok",
+                                onCancel: () => setAlertConfirmMessage(null),
+                                onConfirm: () => setAlertConfirmMessage(null),
+                              });
+                            } else if (who === "ADMIN") {
+                              if (
+                                !row.latitude ||
+                                !row.longitude ||
+                                row.acceptedById == null
+                              ) {
+                                setAlertConfirmMessage({
+                                  message:
+                                    row.acceptedById == null
+                                      ? "Food is not accepted yet"
+                                      : "No pickup coordinates available.",
+                                  messageType: "error",
+                                  cancelText: "Close",
+                                  confirmText: "Ok",
+                                  onCancel: () => setAlertConfirmMessage(null),
+                                  onConfirm: () => setAlertConfirmMessage(null),
+                                });
+                                return;
+                              }
+                              window.open(
+                                `/track-food?mode=pickup&foodLat=${row.latitude}&foodLng=${row.longitude}&workerId=${row.acceptedById}`,
+                                "_blank"
+                              );
+                            }
+                          }}
+                        >
+                          {who === "SERVICE" ? "Copy Coords" : "Track Pickup"}
+                        </button>
+                      </td>
+
+                      <td className="border p-3">
+                        <button
+                          className="cursor-pointer bg-green-500 text-white px-3 py-1 rounded hover:bg-green-600 transition"
+                          onClick={() => {
+                            const coord = row.foodDeliverAddress;
+                            if (who === "SERVICE") {
+                              navigator.clipboard.writeText(coord as string);
+                              setAlertConfirmMessage({
+                                message:
+                                  "Delivery Address copied to clipboard, go to google maps and paste it.",
+                                messageType: "success",
+                                cancelText: "Close",
+                                confirmText: "Ok",
+                                onCancel: () => setAlertConfirmMessage(null),
+                                onConfirm: () => setAlertConfirmMessage(null),
+                              });
+                            } else if (who === "ADMIN") {
+                              if (
+                                !coord ||
+                                !row.latitude ||
+                                !row.longitude ||
+                                row.acceptedById == null
+                              ) {
+                                setAlertConfirmMessage({
+                                  message:
+                                    row.acceptedById == null
+                                      ? "Food is not accepted yet"
+                                      : "No delivery address available.",
+                                  messageType: "error",
+                                  cancelText: "Close",
+                                  confirmText: "Ok",
+                                  onCancel: () => setAlertConfirmMessage(null),
+                                  onConfirm: () => setAlertConfirmMessage(null),
+                                });
+                                return;
+                              }
+                              window.open(
+                                `/track-food?mode=delivery&deliveryAddress=${encodeURIComponent(
+                                  row?.foodDeliverAddress as string
+                                )}&workerId=${row.acceptedById}`,
+                                "_blank"
+                              );
+                            }
+                          }}
+                        >
+                          {who === "SERVICE"
+                            ? "Copy Address"
+                            : "Track Delivery"}
+                        </button>
+                      </td>
+                    </>
+                  )}
               </tr>
             ))}
           </tbody>
         </table>
 
-        {/* Pagination Controls */}
-
         <div className="flex justify-center items-center mt-4 p-4 bg-gray-100 dark:bg-gray-800 rounded-lg shadow-md gap-2">
-          {/* First Page Button */}
           <button
             className={`cursor-pointer px-3 py-2 rounded-lg font-semibold transition-all ${
               pagination.page > 1
@@ -180,7 +300,6 @@ const DashboardTable = memo(
             <PanelLeftClose />
           </button>
 
-          {/* Previous Page Button */}
           <button
             className={`cursor-pointer px-3 py-2 rounded-lg font-semibold transition-all ${
               pagination.page > 1
@@ -193,12 +312,10 @@ const DashboardTable = memo(
             <CircleChevronLeft />
           </button>
 
-          {/* Page Counter */}
           <span className="text-lg font-semibold px-4">
             Page {pagination.page} of {pagination.totalPages}
           </span>
 
-          {/* Next Page Button */}
           <button
             className={`cursor-pointer px-3 py-2 rounded-lg font-semibold transition-all ${
               pagination.page < pagination.totalPages
@@ -224,6 +341,37 @@ const DashboardTable = memo(
             <PanelRightClose />
           </button>
         </div>
+        {alertConfirmMessage && (
+          <AlertConfirmBox
+            message={alertConfirmMessage.message}
+            messageType={alertConfirmMessage.messageType}
+            cancelText={alertConfirmMessage.cancelText}
+            confirmText={alertConfirmMessage.confirmText}
+            onConfirm={alertConfirmMessage.onConfirm}
+            onCancel={
+              alertConfirmMessage.onCancel ||
+              (() => setAlertConfirmMessage(null))
+            }
+            onClose={() => setAlertConfirmMessage(null)}
+          />
+        )}
+        {selectedImage && (
+          <div className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm flex items-center justify-center">
+            <div className="relative">
+              <img
+                src={selectedImage}
+                alt="Preview"
+                className="max-h-[90vh] w-auto rounded-lg shadow-xl transition-transform duration-300"
+              />
+              <button
+                onClick={() => setSelectedImage(null)}
+                className="cursor-pointer absolute top-2 right-2 bg-red-600 hover:bg-red-700 text-white rounded-full w-8 h-8 flex items-center justify-center shadow-md"
+              >
+                ✕
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     );
   }

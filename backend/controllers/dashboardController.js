@@ -44,7 +44,9 @@ export const getDonorDashboard = async (req, res) => {
                     acceptedById:
                     {
                         $ifNull: [{ $arrayElemAt: ["$acceptedBy._id", 0] }, null]
-                    }
+                    },
+                    latitude: 1,
+                    longitude: 1,
                 }
             }
         ]);
@@ -274,6 +276,8 @@ export const getAdminDashboardFood = async (req, res) => {
                     acceptedByEmail: {
                         $ifNull: [{ $arrayElemAt: ["$acceptedBy.email", 0] }, null]
                     },
+                    latitude: 1,
+                    longitude: 1,
                 }
             }
         ]);
@@ -382,9 +386,12 @@ export const getServiceWorkerDashboard = async (req, res) => {
                     madeDate: 1,
                     expiryDate: 1,
                     status: 1,
+                    donorId: { $ifNull: [{ $arrayElemAt: ["$user._id", 0] }, null] },
                     donorName: { $ifNull: [{ $arrayElemAt: ["$user.name", 0] }, null] },
                     donorEmail: { $ifNull: [{ $arrayElemAt: ["$user.email", 0] }, null] },
-                    donorAddress: { $ifNull: [{ $arrayElemAt: ["$user.address", 0] }, null] }
+                    donorAddress: { $ifNull: [{ $arrayElemAt: ["$user.address", 0] }, null] },
+                    latitude: 1,
+                    longitude: 1,
                 }
             }
         ]);

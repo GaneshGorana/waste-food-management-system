@@ -3,12 +3,25 @@ import axios from "axios";
 import { useEffect, useState } from "react";
 
 function NearbyPlaces() {
-  const [places, setPlaces] = useState([]);
+  const [places, setPlaces] = useState<NearByPlaces[]>([
+    {
+      _id: "",
+      placeName: "",
+      placeState: "",
+      placeCity: "",
+      placeAddress: "",
+      placePincode: 0,
+      food: "",
+      worker: "",
+      organization: "",
+      isFoodDelivered: false,
+    },
+  ]);
   const [availableFood, setAvailableFood] = useState([]);
-  const [selectedPlaceId, setSelectedPlaceId] = useState(null);
+  const [selectedPlaceId, setSelectedPlaceId] = useState("");
   const [showModal, setShowModal] = useState(false);
-  const [error, setError] = useState("");
-  const [result, setResult] = useState("");
+  const [error, setError] = useState<ApiError>();
+  const [result, setResult] = useState<ApiResult>();
 
   const fetchPlaces = async () => {
     try {
@@ -17,13 +30,17 @@ function NearbyPlaces() {
         { withCredentials: true }
       );
       if (response.status === 200) {
-        setError("");
+        setError(undefined);
         setPlaces(response.data?.data);
       }
     } catch (error) {
-      console.error("Error fetching nearby places:", error);
-      setResult("");
-      setError(error?.response?.data || "Error fetching nearby places");
+      if (axios.isAxiosError(error)) {
+        console.error("Error fetching nearby places:", error);
+        setResult(undefined);
+        setError(
+          (error.response?.data as ApiError) || "Error fetching nearby places"
+        );
+      }
     }
   };
 
@@ -31,7 +48,7 @@ function NearbyPlaces() {
     fetchPlaces();
   }, []);
 
-  const handleDonateAction = async (placeId) => {
+  const handleDonateAction = async (placeId: string) => {
     try {
       const response = await axios.get(
         `${
@@ -43,17 +60,19 @@ function NearbyPlaces() {
         setAvailableFood(response.data?.data);
         setSelectedPlaceId(placeId);
         setShowModal(true);
-        setError("");
+        setError(undefined);
         setResult(response.data);
       }
     } catch (error) {
-      console.error("Error fetching available deliveries:", error);
-      setResult("");
-      setError(error?.response?.data || "Error fetching available deliveries");
+      if (axios.isAxiosError(error)) {
+        console.error("Error fetching available deliveries:", error);
+        setResult(undefined);
+        setError(error.response?.data || "Error fetching available deliveries");
+      }
     }
   };
 
-  const handleFoodSelect = async (foodId) => {
+  const handleFoodSelect = async (foodId: string) => {
     try {
       const response = await axios.post(
         `${
@@ -66,15 +85,17 @@ function NearbyPlaces() {
         { withCredentials: true }
       );
       if (response.status === 200) {
-        setError("");
+        setError(undefined);
         setResult(response.data);
         fetchPlaces();
       }
       setShowModal(false);
     } catch (error) {
-      console.error("Error donating food:", error);
-      setResult("");
-      setError(error?.response?.data || "Error donating food");
+      if (axios.isAxiosError(error)) {
+        console.error("Error selecting food:", error);
+        setResult(undefined);
+        setError(error.response?.data || "Error selecting food");
+      }
     }
   };
 
@@ -82,12 +103,12 @@ function NearbyPlaces() {
     <div className="mt-16 p-6 min-h-screen bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-white">
       {(error || result) && (
         <AlertBox
-          message={error?.message || result?.message}
+          message={error?.message || result?.message || ""}
           onClose={() => {
-            setError("");
-            setResult("");
+            setError(undefined);
+            setResult(undefined);
           }}
-          messageType={error?.messageType || result?.messageType}
+          messageType={error?.messageType || result?.messageType || "info"}
         />
       )}
       <h1 className="text-3xl font-bold text-center mb-6">Nearby Places</h1>
@@ -170,7 +191,7 @@ function NearbyPlaces() {
               ))
             ) : (
               <tr>
-                <td colSpan="6" className="text-center p-4">
+                <td colSpan={6} className="text-center p-4">
                   No Nearby Places Found
                 </td>
               </tr>
@@ -227,7 +248,7 @@ function NearbyPlaces() {
 
                 <tbody>
                   {availableFood.length > 0 ? (
-                    availableFood.map((food) => (
+                    availableFood.map((food: FoodType) => (
                       <tr
                         key={food?._id}
                         className="border border-gray-700 dark:border-gray-600 text-center bg-white dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-500"
@@ -262,12 +283,16 @@ function NearbyPlaces() {
                           {food?.foodDeliverAddress || "Not assigned yet"}
                         </td>
                         <td className="border border-gray-700 dark:border-gray-600 p-3">
-                          {new Date(food?.expiryDate).toLocaleDateString()}
+                          {food?.expiryDate
+                            ? new Date(food.expiryDate).toLocaleDateString()
+                            : "No expiry date"}
                         </td>
                         <td className="border border-gray-700 dark:border-gray-600 p-3">
                           <button
                             className="cursor-pointer bg-green-500 text-white px-3 py-1 rounded-md hover:bg-green-600"
-                            onClick={() => handleFoodSelect(food._id)}
+                            onClick={() =>
+                              food._id && handleFoodSelect(food._id)
+                            }
                           >
                             Accept this food
                           </button>
@@ -276,7 +301,7 @@ function NearbyPlaces() {
                     ))
                   ) : (
                     <tr>
-                      <td colSpan="5" className="text-center p-4">
+                      <td colSpan={5} className="text-center p-4">
                         No Deliveries Found
                       </td>
                     </tr>
@@ -289,8 +314,8 @@ function NearbyPlaces() {
                 className="cursor-pointer bg-red-500 text-white px-4 py-2 rounded-md hover:bg-red-600"
                 onClick={() => {
                   setShowModal(false);
-                  setError("");
-                  setResult("");
+                  setError(undefined);
+                  setResult(undefined);
                 }}
               >
                 Close

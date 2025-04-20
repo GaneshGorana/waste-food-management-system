@@ -5,10 +5,6 @@ const foodDeliverySchema = new mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId,
         ref: 'ServiceWorker',
     },
-    organizationId: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'Organization',
-    },
     food: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Food',

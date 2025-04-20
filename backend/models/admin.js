@@ -11,7 +11,9 @@ const adminSchema = new mongoose.Schema({
     profilePic: { type: String, default: 'https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_960_720.png' },
     password: { type: String, required: true },
     role: { type: String, default: "ADMIN" },
-    accountStatus: { type: String, enum: ['ACTIVE', 'INACTIVE'], default: 'ACTIVE' }
+    accountStatus: { type: String, enum: ['ACTIVE', 'INACTIVE'], default: 'ACTIVE' },
+    latitude: { type: Number, required: true },
+    longitude: { type: Number, required: true },
 }, { timestamps: true });
 
 adminSchema.pre('save', async function (next) {

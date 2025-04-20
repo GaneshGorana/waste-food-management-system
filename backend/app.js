@@ -2,7 +2,6 @@ import express from "express"
 import http from 'http';
 import { Server } from 'socket.io';
 import userAuthRoutes from './routes/userRoute.js'
-import organizationAuthRoutes from './routes/organizationRoute.js'
 import foodRoutes from './routes/foodRoute.js'
 import dashboardRoutes from "./routes/dashboardRoute.js";
 import serviceWorkeAuthRoutes from "./routes/serviceWorkerAuth.js";
@@ -58,7 +57,6 @@ app.get('/', (req, res) => {
     res.json({ message: 'API is working' });
 })
 app.use('/api/auth/user', userAuthRoutes);
-app.use('/api/auth/organization', organizationAuthRoutes);
 app.use('/api/food', foodRoutes);
 app.use('/api/dashboard', dashboardRoutes)
 app.use('/api/auth/service-worker', serviceWorkeAuthRoutes)
@@ -68,7 +66,7 @@ app.use('/api/refresh-cookie', refreshCookie);
 
 app.use('/api/data', getDataById);
 app.use('/api/count', getCountById);
-app.use('/api/get-account-data', getAccountDataById)
+app.use('/api/get-account-data', getAccountDataById);
 
 //server
 const PORT = process.env.PORT;

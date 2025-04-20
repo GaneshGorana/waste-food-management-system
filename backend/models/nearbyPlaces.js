@@ -29,10 +29,6 @@ const nearbyPlacesSchema = new mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId,
         ref: "Food",
     },
-    organization: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "Organization",
-    },
 
 }, { timestamps: true });
 

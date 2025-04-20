@@ -12,7 +12,9 @@ const serviceWorkerSchema = new mongoose.Schema({
     profilePic: { type: String, default: 'https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_960_720.png' },
     password: { type: String, required: true },
     role: { type: String, default: "SERVICE" },
-    accountStatus: { type: String, enum: ['ACTIVE', 'INACTIVE'], default: 'INACTIVE' }
+    accountStatus: { type: String, enum: ['ACTIVE', 'INACTIVE'], default: 'INACTIVE' },
+    latitude: { type: Number, required: true },
+    longitude: { type: Number, required: true },
 }, { timestamps: true });
 
 serviceWorkerSchema.pre('save', async function (next) {

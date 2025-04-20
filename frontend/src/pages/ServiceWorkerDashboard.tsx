@@ -11,12 +11,18 @@ import {
   addFood,
   clearDataFood,
   deleteFood,
+  updateDonorDetailsInFood,
   updateFood,
 } from "@/features/dashboardData/food";
 import LoadingScreen from "@/components/LoadingScreen";
 import { useSocket } from "@/hooks/useSocket";
 import AlertConfirmBox from "@/components/AlertConfirmBox";
 import { jwtDecode } from "jwt-decode";
+import { usePagination } from "@/hooks/usePagination";
+import {
+  clearAllCounts,
+  setServiceWorkerStateCounts,
+} from "@/features/dashboardData/count";
 
 function ServiceWorkerDashboard() {
   const navigate = useNavigate();
@@ -68,7 +74,6 @@ function ServiceWorkerDashboard() {
   }>({ page: 1, totalPages: 1 });
 
   const dispatch = useDispatch();
-  const visitedPagesRef = useRef(new Set<number>());
   const [isLoading, setIsLoading] = useState<{
     isLoading: boolean;
     text: string;
@@ -88,13 +93,26 @@ function ServiceWorkerDashboard() {
   const foodStateData = useSelector((state: RootState) => state.food.data);
   const foodStateDataRef = useRef(foodStateData);
 
+  const countStateData = useSelector(
+    (state: RootState) => state.count.serviceWorkerCounts
+  );
+
+  const {
+    visitedPagesServiceWorker,
+    addVisitedPagesServiceWorker,
+    deleteVisitedPagesServiceWorker,
+    clearVisitedPagesServiceWorker,
+  } = usePagination();
+
+  const paginationStateData = visitedPagesServiceWorker;
+
   useEffect(() => {
     foodStateDataRef.current = foodStateData;
   }, [foodStateData]);
 
   const fetchServiceWorkerDashboard = useCallback(
     async (page = 1, limit = 10) => {
-      if (visitedPagesRef.current.has(page)) {
+      if (paginationStateData.has(page)) {
         const paginatedData = foodStateData.slice(
           (page - 1) * limit,
           page * limit
@@ -104,9 +122,10 @@ function ServiceWorkerDashboard() {
           ...prev,
           page: page,
         }));
+        setCounts(countStateData as unknown as CountsType);
         return;
       }
-      visitedPagesRef.current.add(page);
+      addVisitedPagesServiceWorker(page);
       try {
         const { data } = await axios.get(
           `${
@@ -123,6 +142,7 @@ function ServiceWorkerDashboard() {
             data: data.data.foodDonations,
           })
         );
+        dispatch(setServiceWorkerStateCounts(data.data.count));
         return;
       } catch (error) {
         if (axios.isAxiosError(error)) {
@@ -132,12 +152,17 @@ function ServiceWorkerDashboard() {
         }
       }
     },
-    [dispatch, foodStateData]
+    [
+      addVisitedPagesServiceWorker,
+      countStateData,
+      dispatch,
+      foodStateData,
+      paginationStateData,
+    ]
   );
+
   useEffect(() => {
-    if (!visitedPagesRef.current.has(pagination.page)) {
-      fetchServiceWorkerDashboard(pagination.page, 10);
-    }
+    fetchServiceWorkerDashboard(pagination.page, 10);
   }, [fetchServiceWorkerDashboard, pagination.page]);
 
   const handleWorkerDelete = async (user: UserType) => {
@@ -254,6 +279,8 @@ function ServiceWorkerDashboard() {
         setError(undefined);
         setResult(result.data);
         dispatch(clearDataFood());
+        clearVisitedPagesServiceWorker();
+        dispatch(clearAllCounts());
         navigate("/");
       }
       dispatch(clearDataFood());
@@ -321,7 +348,9 @@ function ServiceWorkerDashboard() {
 
           const newFood = data.data.foodDonations[0];
           if (!newFood) return;
+
           dispatch(addFood({ data: [newFood] }));
+          dispatch(setServiceWorkerStateCounts(data.data.count));
 
           for (let i = 0; i < pagination.totalPages; i++) {
             const startIdx = i * limit;
@@ -360,7 +389,11 @@ function ServiceWorkerDashboard() {
           );
 
           const updatedFood = data.data.foodDonations[0];
+
           dispatch(updateFood({ _id: updatedFood._id, data: updatedFood }));
+          dispatch(setServiceWorkerStateCounts(data.data.count));
+
+          setCounts(data.data?.count);
           setFoods((prev) =>
             prev?.map((food) =>
               food._id === value.foodId ? updatedFood : food
@@ -407,7 +440,7 @@ function ServiceWorkerDashboard() {
             (page - 1) * limit
           );
           setFoods(newData);
-          visitedPagesRef.current.delete(page);
+          deleteVisitedPagesServiceWorker(page);
         } else {
           setFoods(updatedFoodData);
           setPagination((prev) => ({
@@ -417,7 +450,13 @@ function ServiceWorkerDashboard() {
         }
       }
     },
-    [dispatch, foodStateData, pagination.page, pagination.totalPages]
+    [
+      deleteVisitedPagesServiceWorker,
+      dispatch,
+      foodStateData,
+      pagination.page,
+      pagination.totalPages,
+    ]
   );
 
   useEffect(() => {
@@ -437,6 +476,63 @@ function ServiceWorkerDashboard() {
     };
   }, [trackFoodEventAndUpdateState, socket]);
 
+  const trackDonorEventAndUpdateState = useCallback(
+    async (value: { donorId: string }) => {
+      try {
+        const { data } = await axios.post(
+          `${
+            import.meta.env.VITE_BACKEND_ORIGIN_URL
+          }/api/get-account-data/donor`,
+          { _id: value.donorId },
+          { withCredentials: true }
+        );
+
+        const donor = data.data as UserType;
+
+        const updatedDonorData = {
+          donorEmail: donor._id,
+          donorName: donor.name,
+          donorAddress: donor.address,
+        };
+
+        dispatch(
+          updateDonorDetailsInFood({
+            _id: donor._id,
+            data: updatedDonorData,
+          })
+        );
+
+        setFoods((prev) =>
+          prev?.map((food) =>
+            food.donorId === value.donorId
+              ? {
+                  ...food,
+                  ...updatedDonorData,
+                }
+              : food
+          )
+        );
+      } catch (error) {
+        if (axios.isAxiosError(error)) {
+          console.error("Error fetching updated donor:", error);
+          setResult(undefined);
+          setError(error.response?.data as ApiError);
+        }
+      }
+    },
+    [dispatch]
+  );
+
+  useEffect(() => {
+    socket?.on("donorUpdated", (data) => {
+      trackDonorEventAndUpdateState(data);
+    });
+
+    return () => {
+      socket?.off("donorUpdated");
+    };
+  }, [socket, trackDonorEventAndUpdateState]);
+
   return (
     <div className="min-h-screen bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white p-4 mt-14 sm:mt-14 md:mt-18">
       <LoadingScreen isLoading={isLoading.isLoading} text={isLoading.text} />
@@ -450,7 +546,6 @@ function ServiceWorkerDashboard() {
           messageType={error?.messageType || result?.messageType || "info"}
         />
       )}
-      {/* Navbar */}
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold">Service Worker Dashboard</h1>
 
@@ -465,8 +560,6 @@ function ServiceWorkerDashboard() {
               <Menu className="w-6 h-6 text-gray-800 dark:text-white" />
             )}
           </button>
-
-          {/* Dropdown Menu */}
           {menuOpen && (
             <div className="z-10 absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 shadow-lg rounded-lg border border-gray-300 dark:border-gray-700">
               <button
@@ -532,8 +625,6 @@ function ServiceWorkerDashboard() {
           )}
         </div>
       </div>
-
-      {/* Dashboard Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         <DashboardCard
           text={"Total available food deliveries"}
@@ -605,8 +696,6 @@ function ServiceWorkerDashboard() {
           Icon={Settings2}
         />
       </div>
-
-      {/* Donations Table */}
       <h2 className="text-2xl font-bold mt-6">Table Overview</h2>
       <div className="overflow-x-auto mt-4">
         <DashboardTable
@@ -634,6 +723,7 @@ function ServiceWorkerDashboard() {
             },
           }}
           onPageChange={(newPage) => fetchServiceWorkerDashboard(newPage)}
+          who="SERVICE"
         />
       </div>
       {alertConfirmMessage && (

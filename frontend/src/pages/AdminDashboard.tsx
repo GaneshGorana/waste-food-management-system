@@ -31,6 +31,12 @@ import {
   updateServiceWorker,
 } from "@/features/dashboardData/serviceWorker.js";
 import { jwtDecode } from "jwt-decode";
+import { usePagination } from "@/hooks/usePagination.js";
+import {
+  setDonorStateCounts,
+  setFoodStateCounts,
+  setServiceWorkerStateCounts,
+} from "@/features/dashboardData/count.js";
 
 function AdminDashboard() {
   const navigate = useNavigate();
@@ -46,31 +52,41 @@ function AdminDashboard() {
     ? jwtDecode<UserType>(decodeURIComponent(token))
     : null;
 
-  const [donorCounts, setDonorCounts] = useState<{ totalUsers: 0 }>({
+  type DonorCountType = {
+    totalUsers: number;
+  };
+
+  type ServiceWorkerCountType = {
+    totalActiveWorkers: number;
+    totalPendingApprovals: number;
+    totalServiceWorkers: number;
+  };
+
+  type FoodCountType = {
+    totalPendingFoodDeliveries: number;
+    totalAcceptedFoodDeliveries: number;
+    totalCollectedFoodDeliveries: number;
+    totalDeliveredFoodDeliveries: number;
+    totalFoodDonations: number;
+  };
+
+  const [donorCounts, setDonorCounts] = useState<DonorCountType>({
     totalUsers: 0,
   });
-  const [serviceWorkerCounts, setServiceWorkerCounts] = useState<{
-    totalServiceWorkers: 0;
-    totalActiveWorkers: 0;
-    totalPendingApprovals: 0;
-  }>({
-    totalActiveWorkers: 0,
-    totalPendingApprovals: 0,
-    totalServiceWorkers: 0,
-  });
-  const [foodCounts, setFoodCounts] = useState<{
-    totalPendingFoodDeliveries: 0;
-    totalAcceptedFoodDeliveries: 0;
-    totalCollectedFoodDeliveries: 0;
-    totalDeliveredFoodDeliveries: 0;
-    totalFoodDonations: 0;
-  }>({
+  const [serviceWorkerCounts, setServiceWorkerCounts] =
+    useState<ServiceWorkerCountType>({
+      totalActiveWorkers: 0,
+      totalPendingApprovals: 0,
+      totalServiceWorkers: 0,
+    });
+  const [foodCounts, setFoodCounts] = useState<FoodCountType>({
     totalAcceptedFoodDeliveries: 0,
     totalCollectedFoodDeliveries: 0,
     totalDeliveredFoodDeliveries: 0,
     totalPendingFoodDeliveries: 0,
     totalFoodDonations: 0,
   });
+
   const [users, setUsers] = useState<UserType[]>();
   const [foods, setFoods] = useState<FoodType[]>([]);
   const [serviceWorkers, setServiceWorkers] = useState<ServiceWorkerType[]>();
@@ -165,9 +181,20 @@ function AdminDashboard() {
     });
   }, [socket]);
 
-  const visitedPagesRefFood = useRef(new Set<number>());
-  const visitedPagesRefDonor = useRef(new Set<number>());
-  const visitedPagesRefServiceWorker = useRef(new Set<number>());
+  const {
+    visitedPagesDonor,
+    addVisitedPagesDonor,
+    deleteVisitedPagesDonor,
+    clearVisitedPagesDonor,
+    visitedPagesServiceWorker,
+    addVisitedPagesServiceWorker,
+    deleteVisitedPagesServiceWorker,
+    clearVisitedPagesServiceWorker,
+    visitedPagesFood,
+    addVisitedPagesFood,
+    deleteVisitedPagesFood,
+    clearVisitedPagesFood,
+  } = usePagination();
 
   const foodStateData = useSelector((state: RootState) => state.food.data);
   const donorStateData = useSelector((state: RootState) => state.donor.data);
@@ -179,7 +206,16 @@ function AdminDashboard() {
   const donorStateDataRef = useRef(donorStateData);
   const serviceWorkerStateDataRef = useRef(serviceWorkerStateData);
 
-  // Keep refs in sync
+  const foodCountStateData = useSelector(
+    (state: RootState) => state.count.foodCounts
+  );
+  const donorCountStateData = useSelector(
+    (state: RootState) => state.count.donorCounts
+  );
+  const serviceWorkerCountStateData = useSelector(
+    (state: RootState) => state.count.serviceWorkerCounts
+  );
+
   useEffect(() => {
     foodStateDataRef.current = foodStateData;
   }, [foodStateData]);
@@ -198,43 +234,47 @@ function AdminDashboard() {
       const isServiceWorker = activeCategory === "serviceWorker";
       const isFood = activeCategory === "food";
 
-      if (isFood && visitedPagesRefFood.current.has(page)) {
-        const paginatedData = foodStateDataRef.current.slice(
+      if (isFood && visitedPagesFood.has(page)) {
+        const paginatedData = foodStateData.slice(
           (page - 1) * limit,
           page * limit
         );
         setFoods(paginatedData);
+        setFoodCounts(foodCountStateData as unknown as FoodCountType);
         setPaginationFood((prev) => ({ ...prev, page }));
         setIsLoading({ isLoading: false, text: "" });
         return;
       }
 
-      if (isDonor && visitedPagesRefDonor.current.has(page)) {
-        const paginatedData = donorStateDataRef.current.slice(
+      if (isDonor && visitedPagesDonor.has(page)) {
+        const paginatedData = donorStateData.slice(
           (page - 1) * limit,
           page * limit
         );
         setUsers(paginatedData);
+        setDonorCounts(donorCountStateData as unknown as DonorCountType);
         setPaginationDonor((prev) => ({ ...prev, page }));
         setIsLoading({ isLoading: false, text: "" });
         return;
       }
 
-      if (isServiceWorker && visitedPagesRefServiceWorker.current.has(page)) {
-        const paginatedData = serviceWorkerStateDataRef.current.slice(
+      if (isServiceWorker && visitedPagesServiceWorker.has(page)) {
+        const paginatedData = serviceWorkerStateData.slice(
           (page - 1) * limit,
           page * limit
         );
         setServiceWorkers(paginatedData);
+        setServiceWorkerCounts(
+          serviceWorkerCountStateData as unknown as ServiceWorkerCountType
+        );
         setPaginationServiceWorker((prev) => ({ ...prev, page }));
         setIsLoading({ isLoading: false, text: "" });
         return;
       }
-
       // Add visited
-      if (isFood) visitedPagesRefFood.current.add(page);
-      if (isDonor) visitedPagesRefDonor.current.add(page);
-      if (isServiceWorker) visitedPagesRefServiceWorker.current.add(page);
+      if (isFood) addVisitedPagesFood(page);
+      if (isDonor) addVisitedPagesDonor(page);
+      if (isServiceWorker) addVisitedPagesServiceWorker(page);
 
       try {
         if (isDonor) {
@@ -247,9 +287,12 @@ function AdminDashboard() {
           );
           setIsLoading({ isLoading: false, text: "" });
           setDonorCounts(data.data?.count);
+
+          dispatch(setDonorStateCounts(data.data?.count));
+          dispatch(addDonor({ data: data.data?.users }));
+
           setPaginationDonor(data.data?.pagination);
           setUsers(data.data?.users);
-          dispatch(addDonor({ data: data.data?.users }));
         }
 
         if (isServiceWorker) {
@@ -262,13 +305,16 @@ function AdminDashboard() {
           );
           setIsLoading({ isLoading: false, text: "" });
           setServiceWorkerCounts(data.data?.count);
-          setPaginationServiceWorker(data.data?.pagination);
-          setServiceWorkers(data.data?.serviceWorkers);
+
+          dispatch(setServiceWorkerStateCounts(data.data?.count));
           dispatch(
             addServiceWorker({
               data: data.data?.serviceWorkers,
             })
           );
+
+          setPaginationServiceWorker(data.data?.pagination);
+          setServiceWorkers(data.data?.serviceWorkers);
         }
 
         if (isFood) {
@@ -281,13 +327,16 @@ function AdminDashboard() {
           );
           setIsLoading({ isLoading: false, text: "" });
           setFoodCounts(data.data?.count);
-          setPaginationFood(data.data?.pagination);
-          setFoods(data.data?.foodDonations);
+
+          dispatch(setFoodStateCounts(data.data?.count));
           dispatch(
             addFood({
               data: data.data?.foodDonations,
             })
           );
+
+          setPaginationFood(data.data?.pagination);
+          setFoods(data.data?.foodDonations);
         }
       } catch (error) {
         if (axios.isAxiosError(error)) {
@@ -297,7 +346,22 @@ function AdminDashboard() {
         }
       }
     },
-    [activeCategory, dispatch]
+    [
+      activeCategory,
+      addVisitedPagesDonor,
+      addVisitedPagesFood,
+      addVisitedPagesServiceWorker,
+      dispatch,
+      donorCountStateData,
+      donorStateData,
+      foodCountStateData,
+      foodStateData,
+      serviceWorkerCountStateData,
+      serviceWorkerStateData,
+      visitedPagesDonor,
+      visitedPagesFood,
+      visitedPagesServiceWorker,
+    ]
   );
 
   useEffect(() => {
@@ -308,18 +372,15 @@ function AdminDashboard() {
         ? paginationFood.page
         : paginationServiceWorker.page;
 
-    if (activeCategory === "food" && !visitedPagesRefFood.current.has(page)) {
+    if (activeCategory === "food") {
       fetchAdminDashboard(page, 10);
     }
 
-    if (activeCategory === "donor" && !visitedPagesRefDonor.current.has(page)) {
+    if (activeCategory === "donor") {
       fetchAdminDashboard(page, 10);
     }
 
-    if (
-      activeCategory === "serviceWorker" &&
-      !visitedPagesRefServiceWorker.current.has(page)
-    ) {
+    if (activeCategory === "serviceWorker") {
       fetchAdminDashboard(page, 10);
     }
   }, [
@@ -363,7 +424,6 @@ function AdminDashboard() {
         { ...data, acceptedBy: data.acceptedById },
         { withCredentials: true }
       );
-      console.log("response", response);
       if (response.status === 200) {
         setError(undefined);
         setResult(response.data);
@@ -605,6 +665,9 @@ function AdminDashboard() {
         dispatch(clearDataFood());
         dispatch(clearDataDonor());
         dispatch(clearDataServiceWorker());
+        clearVisitedPagesFood();
+        clearVisitedPagesDonor();
+        clearVisitedPagesServiceWorker();
         navigate("/");
       }
     } catch (error) {
@@ -778,7 +841,7 @@ function AdminDashboard() {
             (page - 1) * limit
           );
           setUsers(newData);
-          visitedPagesRefDonor.current.delete(page);
+          deleteVisitedPagesDonor(page);
         } else {
           setUsers(updatedUser);
           setPaginationDonor((prev) => ({
@@ -788,7 +851,13 @@ function AdminDashboard() {
         }
       }
     },
-    [dispatch, donorStateData, paginationDonor.page, paginationDonor.totalPages]
+    [
+      deleteVisitedPagesDonor,
+      dispatch,
+      donorStateData,
+      paginationDonor.page,
+      paginationDonor.totalPages,
+    ]
   );
 
   useEffect(() => {
@@ -939,7 +1008,7 @@ function AdminDashboard() {
             (page - 1) * limit
           );
           setFoods(newData);
-          visitedPagesRefFood.current.delete(page);
+          deleteVisitedPagesFood(page);
         } else {
           setFoods(updatedFoodData);
           setPaginationFood((prev) => ({
@@ -949,7 +1018,13 @@ function AdminDashboard() {
         }
       }
     },
-    [dispatch, foodStateData, paginationFood.page, paginationFood.totalPages]
+    [
+      deleteVisitedPagesFood,
+      dispatch,
+      foodStateData,
+      paginationFood.page,
+      paginationFood.totalPages,
+    ]
   );
 
   useEffect(() => {
@@ -1108,7 +1183,7 @@ function AdminDashboard() {
             (page - 1) * limit
           );
           setServiceWorkers(newData);
-          visitedPagesRefServiceWorker.current.delete(page);
+          deleteVisitedPagesServiceWorker(page);
         } else {
           setServiceWorkers(updatedServiceWorker);
           setPaginationServiceWorker((prev) => ({
@@ -1119,6 +1194,7 @@ function AdminDashboard() {
       }
     },
     [
+      deleteVisitedPagesServiceWorker,
       dispatch,
       paginationServiceWorker.page,
       paginationServiceWorker.totalPages,
@@ -1159,11 +1235,8 @@ function AdminDashboard() {
           messageType={error?.messageType || result?.messageType || "info"}
         />
       )}
-      {/* Header */}
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold">Admin Dashboard</h1>
-
-        {/* Hamburger Menu */}
         <div className="relative">
           <button
             onClick={() => setMenuOpen(!menuOpen)}
@@ -1175,8 +1248,6 @@ function AdminDashboard() {
               <Settings className="w-6 h-6 text-gray-800 dark:text-white" />
             )}
           </button>
-
-          {/* Dropdown Menu */}
           {menuOpen && (
             <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 shadow-lg rounded-lg border border-gray-300 dark:border-gray-700">
               <button
@@ -1239,8 +1310,6 @@ function AdminDashboard() {
           )}
         </div>
       </div>
-
-      {/* Stats Section */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-6">
         <div
           className={`cursor-pointer bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-400 dark:border-gray-700 hover:shadow-xl transition-transform hover:scale-105 ${
@@ -1276,7 +1345,6 @@ function AdminDashboard() {
       </h2>
 
       <div className="p-6 space-y-8">
-        {/* Cards Section */}
         <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
           {activeCategory === "donor" && (
             <DashboardCard
@@ -1521,17 +1589,12 @@ function AdminDashboard() {
             </>
           )}
         </div>
-
-        {/* Table Section */}
         <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg">
-          {/* Heading + Filter Button */}
           <div className="items-center mb-6 relative">
             <h3 className="text-xl font-semibold text-gray-900 dark:text-white text-center w-full">
               Table Overview
             </h3>
           </div>
-
-          {/* User Table */}
           {activeCategory === "donor" && (
             <DashboardTable
               data={users || []}
@@ -1561,6 +1624,7 @@ function AdminDashboard() {
                 },
               }}
               onPageChange={(newPage) => fetchAdminDashboard(newPage)}
+              who="ADMIN"
             />
           )}
           {activeCategory === "serviceWorker" && (
@@ -1592,6 +1656,7 @@ function AdminDashboard() {
                 },
               }}
               onPageChange={(newPage) => fetchAdminDashboard(newPage)}
+              who="ADMIN"
             />
           )}
           {activeCategory === "food" && (
@@ -1622,6 +1687,7 @@ function AdminDashboard() {
                 },
               }}
               onPageChange={(newPage) => fetchAdminDashboard(newPage)}
+              who="ADMIN"
             />
           )}
         </div>

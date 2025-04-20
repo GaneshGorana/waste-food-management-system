@@ -6,14 +6,14 @@ import { useNavigate } from "react-router-dom";
 
 function ServiceWorkerLogin() {
   const [formData, setFormData] = useState({ email: "", password: "" });
-  const [error, setError] = useState("");
-  const [result, setResult] = useState("");
+  const [error, setError] = useState<ApiError>();
+  const [result, setResult] = useState<ApiResult>();
   const navigate = useNavigate();
-  const handleChange = (e) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const handleUserLogin = async (e) => {
+  const handleUserLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     try {
       const result = await axios.post(
@@ -24,16 +24,18 @@ function ServiceWorkerLogin() {
         { withCredentials: true }
       );
       if (result.status === 200) {
-        setError("");
+        setError(undefined);
         setResult(result.data);
         window.dispatchEvent(new Event("cookieRefresh"));
         navigate("/dashboard/service-worker");
       }
       setFormData({ email: "", password: "" });
     } catch (error) {
-      console.log("Error login service worker : ", error);
-      setResult("");
-      setError(error.response.data);
+      if (axios.isAxiosError(error)) {
+        console.log("Error login service worker : ", error);
+        setResult(undefined);
+        setError(error.response?.data as ApiError);
+      }
     }
   };
 
@@ -41,12 +43,12 @@ function ServiceWorkerLogin() {
     <div className="flex items-center justify-center min-h-screen bg-gray-100 dark:bg-slate-800">
       {(error || result) && (
         <AlertBox
-          message={error?.message || result?.message}
+          message={error?.message || result?.message || ""}
           onClose={() => {
-            setError("");
-            setResult("");
+            setError(undefined);
+            setResult(undefined);
           }}
-          messageType={error?.messageType || result?.messageType}
+          messageType={error?.messageType || result?.messageType || "info"}
         />
       )}
       <div className="bg-white dark:bg-slate-700 p-8 rounded-lg shadow-lg w-full max-w-md">
@@ -85,8 +87,8 @@ function ServiceWorkerLogin() {
             to="/service-worker/register"
             className="cursor-pointer text-blue-500 dark:text-blue-400 ml-1"
             onClick={() => {
-              setError("");
-              setResult("");
+              setError(undefined);
+              setResult(undefined);
             }}
           >
             Register Worker

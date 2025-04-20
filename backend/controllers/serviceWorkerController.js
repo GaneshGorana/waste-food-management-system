@@ -166,6 +166,7 @@ export const workerProfilePicUpload = async (req, res) => {
             urlEndpoint: `${process.env.IMAGE_KIT_URL_ENDPOINT}`
         });
         const fileBuffer = await fs.readFile(req.file.path);
+        const result = await imageKitUpload.upload({ file: fileBuffer, fileName: req.file.originalname, folder: "serviceWorker", isPublished: true });
 
         await fs.unlink(req.file.path, (err) => {
             if (err) {
@@ -173,7 +174,6 @@ export const workerProfilePicUpload = async (req, res) => {
             }
         });
 
-        const result = await imageKitUpload.upload({ file: fileBuffer, fileName: req.file.originalname, folder: "serviceWorker", isPublished: true });
         const worker = await ServiceWorker.findByIdAndUpdate(req.user._id, { $set: { profilePic: result?.url } }, { new: true });
         if (!worker) {
             return ApiError(res, 400, "Error in uploading profile picture", "error")

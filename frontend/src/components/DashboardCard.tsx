@@ -26,12 +26,10 @@ const DashboardCard = ({
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [selectedAction, setSelectedAction] = useState("");
 
-  // Handle dropdown action selection
   const handleActionChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
     const selectedValue = event.target.value;
     setSelectedAction(selectedValue);
 
-    // Find the action and execute it
     const action = dropdownItems.find((item) => item.label === selectedValue);
     if (action) {
       action.handler(() => {
@@ -45,7 +43,6 @@ const DashboardCard = ({
 
   return (
     <div className="relative border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-md rounded-xl p-4 w-full max-w-sm">
-      {/* Dropdown Button (If Needed) */}
       {showDropdown && dropdownItems.length > 0 && (
         <div className="absolute top-3 right-3">
           {dropdownOpen && (
@@ -67,8 +64,6 @@ const DashboardCard = ({
         </div>
       )}
 
-      {/* Title */}
-      {/* Title */}
       <div
         className={`flex items-center  gap-2 mb-6 ${
           Icon ? "justify-between" : "justify-center"
@@ -90,7 +85,6 @@ const DashboardCard = ({
         )}
       </div>
 
-      {/* Data Count Section (Hidden when showDropdown is true) */}
       {!showDropdown && (
         <div className="flex items-center justify-center bg-gray-100 dark:bg-gray-700 rounded-lg py-3">
           <span
@@ -107,7 +101,6 @@ const DashboardCard = ({
         </div>
       )}
 
-      {/* Select Dropdown for Actions (Only when showDropdown is true) */}
       {showDropdown && dropdownItems.length > 0 && (
         <div className="mt-4">
           <select
