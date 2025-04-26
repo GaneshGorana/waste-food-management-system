@@ -67,6 +67,30 @@ export const adminUpdate = async (req, res) => {
     }
 };
 
+export const adminUpdatePassword = async (req, res) => {
+    if (!req.body) {
+        return ApiError(res, 400, "Please provide admin details", "warning")
+    }
+    const { oldPassword, newPassword } = req.body;
+    try {
+        const admin = await Admin.findById(req.user._id);
+        if (!admin) {
+            return ApiError(res, 400, "Admin not found", "info")
+        }
+        const isMatch = await bcrypt.compare(oldPassword, admin.password);
+        if (!isMatch) {
+            return ApiError(res, 400, "Invalid credentials", "warning")
+        }
+        const hashedPassword = await bcrypt.hash(newPassword, 10);
+        await Admin.findByIdAndUpdate(req.user._id, { password: hashedPassword });
+
+        return ApiResponse(res, 200, "Password updated successfully", null, "success")
+    } catch (err) {
+        console.log("admin password update process error :", err);
+        return ApiError(res, 400, "Error in admin password update", "error")
+    }
+}
+
 export const adminDelete = async (req, res) => {
     try {
         if (!req.body) {

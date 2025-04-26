@@ -1,17 +1,69 @@
 import AlertBox from "@/components/AlertBox";
+import AlertConfirmBox from "@/components/AlertConfirmBox";
 import axios from "axios";
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useNavigate } from "react-router-dom";
 
 function ServiceWorkerLogin() {
-  const [formData, setFormData] = useState({ email: "", password: "" });
+  const [formData, setFormData] = useState({
+    email: "",
+    password: "",
+    lat: 0,
+    lng: 0,
+  });
   const [error, setError] = useState<ApiError>();
   const [result, setResult] = useState<ApiResult>();
   const navigate = useNavigate();
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
+
+  const [alertConfirmMessage, setAlertConfirmMessage] = useState<{
+    message: string;
+    messageType: "success" | "info" | "warning" | "error";
+    cancelText?: string;
+    confirmText?: string;
+    onConfirm: () => void;
+    onCancel?: () => void;
+  } | null>(null);
+
+  const getLocation = () => {
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const { latitude, longitude } = position.coords;
+        setFormData((prev) => ({ ...prev, lat: latitude, lng: longitude }));
+      },
+      (error) => {
+        if (error.code === error.PERMISSION_DENIED) {
+          setAlertConfirmMessage({
+            message:
+              "Location is required to login. Please allow location access.",
+            messageType: "error",
+            confirmText: "Try Again",
+            cancelText: "Cancel",
+            onConfirm: () => {
+              setAlertConfirmMessage(null);
+              getLocation();
+            },
+            onCancel: () => {
+              setAlertConfirmMessage({
+                message: "You cannot login without allowing location access.",
+                messageType: "warning",
+                confirmText: "Retry",
+                cancelText: "Cancel",
+                onConfirm: () => {
+                  setAlertConfirmMessage(null);
+                },
+              });
+            },
+          });
+        }
+      }
+    );
+  };
+
+  getLocation();
 
   const handleUserLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -29,7 +81,7 @@ function ServiceWorkerLogin() {
         window.dispatchEvent(new Event("cookieRefresh"));
         navigate("/dashboard/service-worker");
       }
-      setFormData({ email: "", password: "" });
+      setFormData({ email: "", password: "", lat: 0, lng: 0 });
     } catch (error) {
       if (axios.isAxiosError(error)) {
         console.log("Error login service worker : ", error);
@@ -95,6 +147,19 @@ function ServiceWorkerLogin() {
           </Link>
         </p>
       </div>
+      {alertConfirmMessage && (
+        <AlertConfirmBox
+          message={alertConfirmMessage.message}
+          messageType={alertConfirmMessage.messageType}
+          cancelText={alertConfirmMessage.cancelText}
+          confirmText={alertConfirmMessage.confirmText}
+          onConfirm={alertConfirmMessage.onConfirm}
+          onCancel={
+            alertConfirmMessage.onCancel || (() => setAlertConfirmMessage(null))
+          }
+          onClose={() => setAlertConfirmMessage(null)}
+        />
+      )}
     </div>
   );
 }

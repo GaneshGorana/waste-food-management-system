@@ -12,8 +12,6 @@ const adminSchema = new mongoose.Schema({
     password: { type: String, required: true },
     role: { type: String, default: "ADMIN" },
     accountStatus: { type: String, enum: ['ACTIVE', 'INACTIVE'], default: 'ACTIVE' },
-    latitude: { type: Number, required: true },
-    longitude: { type: Number, required: true },
 }, { timestamps: true });
 
 adminSchema.pre('save', async function (next) {

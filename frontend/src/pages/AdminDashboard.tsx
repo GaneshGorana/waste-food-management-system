@@ -37,6 +37,7 @@ import {
   setFoodStateCounts,
   setServiceWorkerStateCounts,
 } from "@/features/dashboardData/count.js";
+import { SearchFilterTable } from "@/components/SearchFilterTable.js";
 
 function AdminDashboard() {
   const navigate = useNavigate();
@@ -88,7 +89,7 @@ function AdminDashboard() {
   });
 
   const [users, setUsers] = useState<UserType[]>();
-  const [foods, setFoods] = useState<FoodType[]>([]);
+  const [foods, setFoods] = useState<FoodType[] | undefined>([]);
   const [serviceWorkers, setServiceWorkers] = useState<ServiceWorkerType[]>();
   const [menuOpen, setMenuOpen] = useState(false);
 
@@ -182,6 +183,7 @@ function AdminDashboard() {
   }, [socket]);
 
   const {
+    getVisitedPagesData,
     visitedPagesDonor,
     addVisitedPagesDonor,
     deleteVisitedPagesDonor,
@@ -215,6 +217,38 @@ function AdminDashboard() {
   const serviceWorkerCountStateData = useSelector(
     (state: RootState) => state.count.serviceWorkerCounts
   );
+
+  const [isSearchTableForDonorOn, setIsSearchTableForDonorOn] = useState(false);
+  const [isSearchTableForServiceWorkerOn, setIsSearchTableForServiceWorkerOn] =
+    useState(false);
+  const [isSearchTableForFoodOn, setIsSearchTableForFoodOn] = useState(false);
+
+  const [searchFilterTableDataForDonor, setSearchFilterTableDataForDonor] =
+    useState<{
+      donorName?: string;
+      email?: string;
+      createdAt?: string;
+    } | null>(null);
+
+  const [
+    searchFilterTableDataForServiceWorker,
+    setSearchFilterTableDataForServiceWorker,
+  ] = useState<{
+    workerName?: string;
+    email?: string;
+    createdAt?: string;
+  } | null>(null);
+
+  const [searchFilterTableDataForFood, setSearchFilterTableDataForFood] =
+    useState<{
+      foodName?: string;
+      donordName?: string;
+      donorEmail?: string;
+      workerName?: string;
+      workerEmail?: string;
+      status?: "PENDING" | "ACCEPTED" | "COLLECTED" | "DELIVERED";
+      madeDate?: string;
+    } | null>(null);
 
   useEffect(() => {
     foodStateDataRef.current = foodStateData;
@@ -949,7 +983,6 @@ function AdminDashboard() {
           );
 
           const updatedFood = data.data.foodDonations[0];
-
           dispatch(updateFood({ _id: updatedFood._id, data: updatedFood }));
 
           setFoods((prev) =>
@@ -1222,6 +1255,91 @@ function AdminDashboard() {
     };
   }, [trackServiceWorkerEventAndUpdateState, socket]);
 
+  ///////////////// search filter table /////////////////
+
+  const handleSearchFilterTableForDonor = async (
+    data: { donorName?: string; email?: string; createdAt?: string } | null,
+    page: number,
+    limit: number
+  ) => {
+    setIsSearchTableForDonorOn(true);
+    try {
+      const result = await axios.post(
+        `${
+          import.meta.env.VITE_BACKEND_ORIGIN_URL
+        }/api/search-filter-table/get-search-filter-table-for-donor-by-admin?page=${page}&limit=${limit}`,
+        data,
+        { withCredentials: true }
+      );
+      setUsers(result.data.data.users);
+      setPaginationDonor(result.data.data.pagination);
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        console.error("Error searching food:", error);
+        setResult(undefined);
+        setError(error.response?.data as ApiError);
+      }
+    }
+  };
+
+  const handleSearchFilterTableForServiceWorker = async (
+    data: { workerName?: string; email?: string; createdAt?: string } | null,
+    page: number,
+    limit: number
+  ) => {
+    setIsSearchTableForServiceWorkerOn(true);
+    try {
+      const result = await axios.post(
+        `${
+          import.meta.env.VITE_BACKEND_ORIGIN_URL
+        }/api/search-filter-table/get-search-filter-table-for-service-worker-by-admin?page=${page}&limit=${limit}`,
+        data,
+        { withCredentials: true }
+      );
+      setServiceWorkers(result.data.data.serviceWorkers);
+      setPaginationDonor(result.data.data.pagination);
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        console.error("Error searching food:", error);
+        setResult(undefined);
+        setError(error.response?.data as ApiError);
+      }
+    }
+  };
+
+  const handleSearchFilterTableForFood = async (
+    data: {
+      foodName?: string;
+      donordName?: string;
+      donorEmail?: string;
+      workerName?: string;
+      workerEmail?: string;
+      status?: "PENDING" | "ACCEPTED" | "COLLECTED" | "DELIVERED";
+      madeDate?: string;
+    } | null,
+    page: number,
+    limit: number
+  ) => {
+    setIsSearchTableForFoodOn(true);
+    try {
+      const result = await axios.post(
+        `${
+          import.meta.env.VITE_BACKEND_ORIGIN_URL
+        }/api/search-filter-table/get-search-filter-table-for-food-by-admin?page=${page}&limit=${limit}`,
+        data,
+        { withCredentials: true }
+      );
+      setFoods(result.data.data.foodDonations);
+      setPaginationDonor(result.data.data.pagination);
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        console.error("Error searching food:", error);
+        setResult(undefined);
+        setError(error.response?.data as ApiError);
+      }
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-white p-6 mt-14 sm:mt-14 md:mt-18">
       <LoadingScreen isLoading={isLoading.isLoading} text={isLoading.text} />
@@ -1249,7 +1367,7 @@ function AdminDashboard() {
             )}
           </button>
           {menuOpen && (
-            <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 shadow-lg rounded-lg border border-gray-300 dark:border-gray-700">
+            <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 shadow-lg rounded-lg border border-gray-300 dark:border-gray-700 z-50">
               <button
                 onClick={() => navigate("/settings")}
                 className="cursor-pointer block w-full text-left px-4 py-2 hover:bg-gray-200 dark:hover:bg-gray-700"
@@ -1596,99 +1714,195 @@ function AdminDashboard() {
             </h3>
           </div>
           {activeCategory === "donor" && (
-            <DashboardTable
-              data={users || []}
-              pagination={paginationDonor}
-              actions={{
-                activate: {
-                  label: "Update",
-                  handler: (user) =>
-                    handleToggleEditMode(user as ThingValueType),
-                  color: "bg-green-500 text-white",
-                },
-                delete: {
-                  label: "Delete",
-                  handler: (user) => {
-                    setAlertConfirmMessage({
-                      message: "Delete user account?",
-                      messageType: "info",
-                      cancelText: "Cancel",
-                      confirmText: "Delete",
-                      onConfirm: () => {
-                        handleDeleteDonor(user as UserType);
-                        setAlertConfirmMessage(null);
-                      },
-                    });
+            <>
+              <SearchFilterTable
+                fields={[
+                  { label: "Donor Name", key: "donorName", type: "text" },
+                  { label: "Email", key: "email", type: "email" },
+                  { label: "Created After", key: "createdAt", type: "date" },
+                ]}
+                onSearch={(data) => {
+                  setSearchFilterTableDataForDonor(data);
+                  handleSearchFilterTableForDonor(data, 1, 10);
+                }}
+                onClear={() => {
+                  setIsSearchTableForDonorOn(false);
+                  setUsers(undefined);
+                  setSearchFilterTableDataForDonor(null);
+                  setPaginationDonor(getVisitedPagesData(visitedPagesDonor));
+                  fetchAdminDashboard(1, 10);
+                }}
+              />
+              <DashboardTable
+                data={users || []}
+                pagination={paginationDonor}
+                actions={{
+                  activate: {
+                    label: "Update",
+                    handler: (user) =>
+                      handleToggleEditMode(user as ThingValueType),
+                    color: "bg-green-500 text-white",
                   },
-                  color: "bg-red-500 text-white",
-                },
-              }}
-              onPageChange={(newPage) => fetchAdminDashboard(newPage)}
-              who="ADMIN"
-            />
+                  delete: {
+                    label: "Delete",
+                    handler: (user) => {
+                      setAlertConfirmMessage({
+                        message: "Delete user account?",
+                        messageType: "info",
+                        cancelText: "Cancel",
+                        confirmText: "Delete",
+                        onConfirm: () => {
+                          handleDeleteDonor(user as UserType);
+                          setAlertConfirmMessage(null);
+                        },
+                      });
+                    },
+                    color: "bg-red-500 text-white",
+                  },
+                }}
+                onPageChange={(newPage) => fetchAdminDashboard(newPage)}
+                who="ADMIN"
+              />
+            </>
           )}
           {activeCategory === "serviceWorker" && (
-            <DashboardTable
-              data={filteredServiceWorkers || []}
-              pagination={paginationServiceWorker}
-              actions={{
-                activate: {
-                  label: "Update",
-                  handler: (serviceWorker) =>
-                    handleToggleEditMode(serviceWorker as ThingValueType),
-                  color: "bg-green-500 text-white",
-                },
-                delete: {
-                  label: "Delete",
-                  handler: (serviceWorker) => {
-                    setAlertConfirmMessage({
-                      message: "Delete service worker account?",
-                      messageType: "info",
-                      cancelText: "Cancel",
-                      confirmText: "Delete",
-                      onConfirm: () => {
-                        handleDeleteServiceWorker(serviceWorker as UserType);
-                        setAlertConfirmMessage(null);
-                      },
-                    });
+            <>
+              <SearchFilterTable
+                fields={[
+                  { label: "Worker Name", key: "workerName", type: "text" },
+                  { label: "Email", key: "email", type: "email" },
+                  { label: "Created After", key: "createdAt", type: "date" },
+                ]}
+                onSearch={(data) => {
+                  setSearchFilterTableDataForServiceWorker(data);
+                  handleSearchFilterTableForServiceWorker(data, 1, 10);
+                }}
+                onClear={() => {
+                  setIsSearchTableForServiceWorkerOn(false);
+                  setServiceWorkers(undefined);
+                  setSearchFilterTableDataForServiceWorker(null);
+                  setPaginationServiceWorker(
+                    getVisitedPagesData(visitedPagesDonor)
+                  );
+                  fetchAdminDashboard(1, 10);
+                }}
+              />
+              <DashboardTable
+                data={filteredServiceWorkers || []}
+                pagination={paginationServiceWorker}
+                actions={{
+                  activate: {
+                    label: "Update",
+                    handler: (serviceWorker) =>
+                      handleToggleEditMode(serviceWorker as ThingValueType),
+                    color: "bg-green-500 text-white",
                   },
-                  color: "bg-red-500 text-white",
-                },
-              }}
-              onPageChange={(newPage) => fetchAdminDashboard(newPage)}
-              who="ADMIN"
-            />
+                  delete: {
+                    label: "Delete",
+                    handler: (serviceWorker) => {
+                      setAlertConfirmMessage({
+                        message: "Delete service worker account?",
+                        messageType: "info",
+                        cancelText: "Cancel",
+                        confirmText: "Delete",
+                        onConfirm: () => {
+                          handleDeleteServiceWorker(serviceWorker as UserType);
+                          setAlertConfirmMessage(null);
+                        },
+                      });
+                    },
+                    color: "bg-red-500 text-white",
+                  },
+                }}
+                onPageChange={(newPage) => fetchAdminDashboard(newPage)}
+                who="ADMIN"
+              />
+            </>
           )}
           {activeCategory === "food" && (
-            <DashboardTable
-              data={filteredFoods}
-              pagination={paginationFood}
-              actions={{
-                activate: {
-                  label: "Update",
-                  handler: (food) => handleToggleEditMode(food as FoodType),
-                  color: "bg-green-500 text-white",
-                },
-                delete: {
-                  label: "Delete",
-                  handler: (food) => {
-                    setAlertConfirmMessage({
-                      message: "Delete food item?",
-                      messageType: "info",
-                      cancelText: "Cancel",
-                      confirmText: "Delete",
-                      onConfirm: () => {
-                        handleDeleteFood(food as FoodType);
-                        setAlertConfirmMessage(null);
-                      },
-                    });
+            <>
+              <SearchFilterTable
+                fields={[
+                  { label: "Food Name", key: "foodName", type: "text" },
+                  { label: "Donor Name", key: "donorName", type: "text" },
+                  { label: "Donor email", key: "donorEmail", type: "email" },
+                  { label: "Worker Name", key: "workerName", type: "text" },
+                  { label: "Worker Email", key: "workerEmail", type: "email" },
+                  {
+                    label: "Food Status",
+                    key: "status",
+                    type: "select",
+                    options: ["PENDING", "ACCEPTED", "COLLECTED", "DELIVERED"],
                   },
-                  color: "bg-red-500 text-white",
-                },
-              }}
-              onPageChange={(newPage) => fetchAdminDashboard(newPage)}
-              who="ADMIN"
-            />
+                  {
+                    label: "Made date of food After",
+                    key: "madeDate",
+                    type: "date",
+                  },
+                ]}
+                onSearch={(data) => {
+                  setSearchFilterTableDataForFood(data);
+                  handleSearchFilterTableForFood(data, 1, 10);
+                }}
+                onClear={() => {
+                  setIsSearchTableForFoodOn(false);
+                  setFoods(undefined);
+                  setSearchFilterTableDataForFood(null);
+                  setPaginationFood(getVisitedPagesData(visitedPagesDonor));
+                  fetchAdminDashboard(1, 10);
+                }}
+              />
+              <DashboardTable
+                data={filteredFoods || []}
+                pagination={paginationFood}
+                actions={{
+                  delete: {
+                    label: "Delete",
+                    handler: (food) => {
+                      setAlertConfirmMessage({
+                        message: "Delete food item?",
+                        messageType: "info",
+                        cancelText: "Cancel",
+                        confirmText: "Delete",
+                        onConfirm: () => {
+                          handleDeleteFood(food as FoodType);
+                          setAlertConfirmMessage(null);
+                        },
+                      });
+                    },
+                    color: "bg-red-500 text-white",
+                  },
+                }}
+                onPageChange={(newPage) => {
+                  if (isSearchTableForDonorOn) {
+                    handleSearchFilterTableForDonor(
+                      searchFilterTableDataForDonor,
+                      newPage,
+                      10
+                    );
+                    return;
+                  }
+                  if (isSearchTableForServiceWorkerOn) {
+                    handleSearchFilterTableForServiceWorker(
+                      searchFilterTableDataForServiceWorker,
+                      newPage,
+                      10
+                    );
+                    return;
+                  }
+                  if (isSearchTableForFoodOn) {
+                    handleSearchFilterTableForFood(
+                      searchFilterTableDataForFood,
+                      newPage,
+                      10
+                    );
+                    return;
+                  }
+                  fetchAdminDashboard(newPage);
+                }}
+                who="ADMIN"
+              />
+            </>
           )}
         </div>
       </div>
@@ -1696,6 +1910,15 @@ function AdminDashboard() {
       {isEditModeOpen && (
         <EditBox
           data={thingValue as FoodType}
+          isNullValuesAllowed={false}
+          readOnlyFields={[
+            "_id",
+            "profilePic",
+            "role",
+            "accountStatus",
+            "latitude",
+            "longitude",
+          ]}
           actions={{
             update: { label: "Update", color: "bg-green-500" },
             cancel: {
@@ -1762,7 +1985,7 @@ function AdminDashboard() {
                 cancelText: "Cancel",
                 confirmText: "Approve",
                 onConfirm: () => {
-                  handleApproveWorker(data._id);
+                  handleApproveWorker(data._id as ServiceWorkerType["_id"]);
                   setAlertConfirmMessage(null);
                 },
               });
@@ -1774,7 +1997,7 @@ function AdminDashboard() {
                 cancelText: "Cancel",
                 confirmText: "Reject",
                 onConfirm: () => {
-                  handleRejectWorker(data._id);
+                  handleRejectWorker(data._id as ServiceWorkerType["_id"]);
                   setAlertConfirmMessage(null);
                 },
               });

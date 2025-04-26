@@ -7,6 +7,8 @@ import axios from "axios";
 import AlertBox from "./AlertBox";
 import AlertConfirmBox from "./AlertConfirmBox";
 import LoadingScreen from "./LoadingScreen";
+import "../assets/css/imageShowAnimation.css";
+import DashboardValueUpdater from "./DashboardValueUpdater";
 
 const ManageAccount: React.FC = () => {
   const fields = jwtDecode<Record<string, string>>(
@@ -34,6 +36,13 @@ const ManageAccount: React.FC = () => {
     isLoading: boolean;
     text: string;
   }>({ isLoading: false, text: "" });
+
+  const [isValueUpdateModeOpen, setIsValueUpdateModeOpen] = useState(false);
+  const [thingValueUpdate, setThingValueUpdate] = useState<{
+    title: string;
+    fields?: { text: string; asValue: string }[];
+    type?: string;
+  } | null>(null);
 
   const [selectedImagePreview, setSelectedImagePreview] =
     useState<UserType["profilePic"]>();
@@ -340,6 +349,82 @@ const ManageAccount: React.FC = () => {
     }
   };
 
+  const handlePasswordUpdate = async (data: {
+    oldPassword: string;
+    newPassword: string;
+  }) => {
+    setIsLoading({ isLoading: true, text: "Updating Password" });
+    if (formData.role === "DONOR") {
+      try {
+        const response = await axios.post(
+          `${
+            import.meta.env.VITE_BACKEND_ORIGIN_URL
+          }/api/auth/user/update-password`,
+          data,
+          { withCredentials: true }
+        );
+        if (response.status === 200) {
+          setError(undefined);
+          setResult(response.data);
+        }
+      } catch (error) {
+        if (axios.isAxiosError(error)) {
+          console.error("Error updating password:", error);
+          setResult(undefined);
+          setError(error.response?.data as ApiError);
+        }
+      } finally {
+        setIsLoading({ isLoading: false, text: "" });
+      }
+    }
+    if (formData.role === "SERVICE") {
+      try {
+        const response = await axios.post(
+          `${
+            import.meta.env.VITE_BACKEND_ORIGIN_URL
+          }/api/auth/service-worker/update-password`,
+          data,
+          { withCredentials: true }
+        );
+        if (response.status === 200) {
+          setError(undefined);
+          setResult(response.data);
+        }
+      } catch (error) {
+        if (axios.isAxiosError(error)) {
+          console.error("Error updating password:", error);
+          setResult(undefined);
+          setError(error.response?.data as ApiError);
+        }
+      } finally {
+        setIsLoading({ isLoading: false, text: "" });
+      }
+    }
+    if (formData.role === "ADMIN") {
+      try {
+        const response = await axios.post(
+          `${
+            import.meta.env.VITE_BACKEND_ORIGIN_URL
+          }/api/auth/admin/update-password`,
+          data,
+          { withCredentials: true }
+        );
+        if (response.status === 200) {
+          setError(undefined);
+          setResult(response.data);
+        }
+      } catch (error) {
+        if (axios.isAxiosError(error)) {
+          console.error("Error updating password:", error);
+          setResult(undefined);
+          setError(error.response?.data as ApiError);
+        }
+      } finally {
+        setIsLoading({ isLoading: false, text: "" });
+      }
+    }
+  };
+
   return (
     <div className="flex items-center justify-center min-h-screen w-full bg-white dark:bg-gray-800 py-10">
       <LoadingScreen isLoading={isLoading.isLoading} text={isLoading.text} />
@@ -462,6 +547,17 @@ const ManageAccount: React.FC = () => {
           <Button
             variant="outline"
             className="cursor-pointer w-full sm:w-auto text-base lg:text-lg px-4 lg:px-6 py-2 lg:py-3 text-cyan-500 border-cyan-500 dark:text-cyan-400 dark:border-cyan-400"
+            onClick={() => {
+              setIsValueUpdateModeOpen(true);
+              setThingValueUpdate({
+                title: "Update Password",
+                fields: [
+                  { text: "Enter old password", asValue: "oldPassword" },
+                  { text: "Enter new password", asValue: "newPassword" },
+                ],
+                type: "updatePassword",
+              });
+            }}
           >
             Change Password
           </Button>
@@ -502,21 +598,55 @@ const ManageAccount: React.FC = () => {
         />
       )}
       {selectedImagePreview && (
-        <div className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm flex items-center justify-center">
-          <div className="relative">
+        <div
+          className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm flex items-center justify-center transition-opacity duration-300 ease-in-out opacity-100"
+          onClick={() => setSelectedImagePreview(undefined)}
+        >
+          <div
+            className="relative animate-scale-in"
+            onClick={(e) => e.stopPropagation()}
+          >
             <img
               src={selectedImagePreview}
               alt="Preview"
-              className="max-h-[90vh] w-auto rounded-lg shadow-xl transition-transform duration-300"
+              className="max-h-[90vh] w-auto rounded-lg shadow-xl"
             />
             <button
               onClick={() => setSelectedImagePreview(undefined)}
-              className="cursor-pointer absolute top-2 right-2 bg-red-600 hover:bg-red-700 text-white rounded-full w-8 h-8 flex items-center justify-center shadow-md"
+              className="cursor-pointer absolute top-2 right-2 bg-red-600 hover:bg-red-700 text-white rounded-full w-8 h-8 flex items-center justify-center shadow-md transition-transform duration-300 ease-in-out transform hover:scale-110"
             >
               ✕
             </button>
           </div>
         </div>
+      )}
+      {isValueUpdateModeOpen && (
+        <DashboardValueUpdater
+          title={thingValueUpdate?.title || ""}
+          fields={thingValueUpdate?.fields || []}
+          type={thingValueUpdate?.type || ""}
+          onSubmit={(data) => {
+            setIsValueUpdateModeOpen(false);
+            setThingValueUpdate(null);
+            setAlertConfirmMessage({
+              message: "Confirm to password update?",
+              messageType: "info",
+              cancelText: "Cancel",
+              confirmText: "Update",
+              onConfirm: async () => {
+                handlePasswordUpdate(
+                  data as { oldPassword: string; newPassword: string }
+                );
+                setAlertConfirmMessage(null);
+              },
+              onCancel: () => setAlertConfirmMessage(null),
+            });
+          }}
+          onClose={() => {
+            setIsValueUpdateModeOpen(false);
+            setThingValueUpdate(null);
+          }}
+        />
       )}
     </div>
   );

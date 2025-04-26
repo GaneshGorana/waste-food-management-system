@@ -69,6 +69,30 @@ export const userUpdate = async (req, res) => {
     }
 }
 
+export const userUpdatePassword = async (req, res) => {
+    try {
+        const { oldPassword, newPassword } = req.body;
+        if (!oldPassword || !newPassword) {
+            return ApiError(res, 400, "Please provide old and new password", "warning")
+        }
+        const user = await User.findById(req.user._id);
+        if (!user) {
+            return ApiError(res, 400, "User not found", "info")
+        }
+        const isMatch = await bcrypt.compare(oldPassword, user.password);
+        if (!isMatch) {
+            return ApiError(res, 400, "Invalid credentials", "warning")
+        }
+        const hashedPassword = await bcrypt.hash(newPassword, 10);
+        await User.findByIdAndUpdate(req.user._id, { password: hashedPassword });
+
+        return ApiResponse(res, 200, "Password updated successfully", null, "success")
+    } catch (error) {
+        console.log("update process error in user :");
+        return ApiError(res, 400, "Error in password update", "error")
+    }
+}
+
 export const userDelete = async (req, res) => {
     try {
         const user = req.body;

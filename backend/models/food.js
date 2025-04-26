@@ -29,6 +29,8 @@ const foodSchema = new mongoose.Schema({
     foodDeliverAddress: { type: String, default: "" },
     latitude: { type: Number, required: true },
     longitude: { type: Number, required: true },
+    foodDeliverLatitude: { type: Number, default: 0 },
+    foodDeliverLongitude: { type: Number, default: 0 },
 }, { timestamps: true });
 
 foodSchema.plugin(mongooseAggregatePaginate)

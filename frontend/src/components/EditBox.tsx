@@ -1,71 +1,43 @@
-import { jwtDecode } from "jwt-decode";
 import { useState } from "react";
 
-type EditBoxPropTypes = {
-  data: FoodType;
+type EditBoxPropTypes<T> = {
+  data: T;
   actions?: Record<
     string,
     {
       label: string;
       color?: string;
-      handler?: (
-        data?: Record<
-          string,
-          string | number | boolean | object | null | undefined
-        >
-      ) => void;
+      handler?: (data?: Partial<T>) => void;
     }
   >;
-  onUpdate: (data: FoodType) => void;
+  readOnlyFields?: string[];
+  isNullValuesAllowed?: boolean;
+  onUpdate: (data: T) => void;
   onClose: () => void;
 };
 
-const EditBox = ({
+const EditBox = <T extends Record<string, unknown>>({
   data,
   actions = {},
+  readOnlyFields = [],
+  isNullValuesAllowed = true,
   onUpdate,
   onClose,
-}: EditBoxPropTypes) => {
+}: EditBoxPropTypes<T>) => {
   const [formData, setFormData] = useState(data);
-
-  const token = document.cookie.split("token=")[1]?.split(";")[0];
-  const userData = token
-    ? jwtDecode<UserType>(decodeURIComponent(token))
-    : null;
-
-  const readOnlyFields = [
-    userData?.role === "ADMIN" ? "_id" : "foodDeliverAddress",
-    "acceptedBy",
-    "role",
-    "accountStatus",
-    "acceptedById",
-    "profilePic",
-    "foodImage",
-    "latitude",
-    "longitude",
-    "foodType",
-    "status",
-  ];
-
-  const handleChange = (
-    key: string,
-    value: string | number | boolean | object | null | undefined
-  ) => {
+  const handleChange = <K extends keyof T>(key: K, value: T[K]) => {
     setFormData((prev) => ({ ...prev, [key]: value }));
   };
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (onUpdate) {
-      onUpdate(formData);
-    }
+    onUpdate(formData);
     onClose();
   };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm px-4">
       <div className="bg-white dark:bg-gray-800 shadow-lg rounded-xl p-6 w-full max-w-lg max-h-[80vh] overflow-y-auto relative">
-        {/* Close Button */}
         <button
           className="cursor-pointer absolute top-3 right-3 text-gray-500 hover:text-gray-800 dark:hover:text-gray-300"
           onClick={onClose}
@@ -79,17 +51,19 @@ const EditBox = ({
 
         <form onSubmit={handleSubmit} className="space-y-4">
           {Object.keys(formData).map((key) => {
-            if (key === "_id") return null;
-            if (key === "foodDeliverAddress") {
-              if (userData?.role !== "ADMIN") {
-                return;
-              }
-            }
-            if (key === "foodImage" || key === "profilePic") {
-              return;
+            const value = formData[key as keyof T];
+
+            if (
+              !isNullValuesAllowed &&
+              (value === null || value === undefined)
+            ) {
+              return null;
             }
 
-            const value = formData[key as keyof typeof formData];
+            if (readOnlyFields.includes(key)) {
+              return null;
+            }
+
             const isEditable = !readOnlyFields.includes(key);
 
             return (
@@ -102,18 +76,20 @@ const EditBox = ({
                   <input
                     type="text"
                     value={
-                      value !== null && value !== undefined ? String(value) : ""
+                      typeof value === "object"
+                        ? JSON.stringify(value)
+                        : String(value)
                     }
-                    onChange={(e) => handleChange(key, e.target.value)}
+                    onChange={(e) =>
+                      handleChange(key as keyof T, e.target.value as T[keyof T])
+                    }
                     className="p-2 border rounded-md bg-gray-100 dark:bg-gray-700 dark:text-white focus:outline-none focus:ring focus:ring-blue-400"
                   />
                 ) : (
                   <p className="p-2 bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400 rounded-md">
-                    {value !== null && value !== undefined
-                      ? typeof value === "object"
-                        ? JSON.stringify(value)
-                        : String(value)
-                      : "Not Assigned"}
+                    {typeof value === "object"
+                      ? JSON.stringify(value)
+                      : String(value)}
                   </p>
                 )}
               </div>
@@ -138,7 +114,7 @@ const EditBox = ({
                           Object.entries(formData).filter(
                             ([, value]) => typeof value !== "boolean"
                           )
-                        )
+                        ) as Partial<T>
                       );
                     }
                   }
@@ -153,4 +129,5 @@ const EditBox = ({
     </div>
   );
 };
+
 export default EditBox;

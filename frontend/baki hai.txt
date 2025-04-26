@@ -1,0 +1,7 @@
+use mongodb atlas
+use netlify for deployment
+get service worker location in realtime and emit the events to get realtime location
+
+i have changed edit box component, so change in everyone 's page
+
+admin side me search table add karna baki hai

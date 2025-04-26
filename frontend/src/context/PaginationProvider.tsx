@@ -14,6 +14,16 @@ export const PaginationProvider: React.FC<{ children: React.ReactNode }> = ({
     new Set()
   );
 
+  const getVisitedPagesData = (visitedPages: Set<number>) => {
+    if (visitedPages.size === 0) {
+      return { page: 1, totalPages: 1 };
+    }
+    const pagesArray = Array.from(visitedPages);
+    const page = Math.min(...pagesArray);
+    const totalPages = Math.max(...pagesArray);
+    return { page, totalPages };
+  };
+
   const addVisitedPagesDonor = (page: number) => {
     setVisitedPagesDonor((prev) => {
       const newSet = new Set(prev);
@@ -80,6 +90,7 @@ export const PaginationProvider: React.FC<{ children: React.ReactNode }> = ({
         visitedPagesDonor,
         visitedPagesServiceWorker,
         visitedPagesFood,
+        getVisitedPagesData,
         addVisitedPagesDonor,
         addVisitedPagesServiceWorker,
         addVisitedPagesFood,

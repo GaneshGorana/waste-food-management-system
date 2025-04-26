@@ -24,6 +24,7 @@ import {
   clearAllCounts,
   setDonorStateCounts,
 } from "@/features/dashboardData/count.js";
+import { SearchFilterTable } from "@/components/SearchFilterTable.js";
 
 function DonorDashboard() {
   const navigate = useNavigate();
@@ -56,8 +57,15 @@ function DonorDashboard() {
   const [pagination, setPagination] = useState<{
     page: number;
     totalPages: number;
-    totalDocs: number;
-  }>({ page: 1, totalPages: 1, totalDocs: 1 });
+  }>({ page: 1, totalPages: 1 });
+
+  const [isSearchTableOn, setIsSearchTableOn] = useState(false);
+  const [searchFilterTableData, setSearchFilterTableData] = useState<{
+    name?: string;
+    status?: "PENDING" | "ACCEPTED" | "COLLECTED" | "DELIVERED";
+    startDate?: string;
+  } | null>(null);
+
   const dispatch = useDispatch();
 
   const [isLoading, setIsLoading] = useState<{
@@ -84,6 +92,7 @@ function DonorDashboard() {
 
   const {
     visitedPagesDonor,
+    getVisitedPagesData,
     addVisitedPagesDonor,
     deleteVisitedPagesDonor,
     clearVisitedPagesDonor,
@@ -501,6 +510,37 @@ function DonorDashboard() {
     };
   }, [socket, trackServiceWorkerEventAndUpdateState]);
 
+  interface SearchFilterDataType {
+    foodName?: string;
+    status?: "PENDING" | "ACCEPTED" | "COLLECTED" | "DELIVERED";
+    startDate?: string;
+  }
+
+  const handleSearchFilterTable = async (
+    data: SearchFilterDataType | null,
+    page: number,
+    limit: number
+  ) => {
+    setIsSearchTableOn(true);
+    try {
+      const result = await axios.post(
+        `${
+          import.meta.env.VITE_BACKEND_ORIGIN_URL
+        }/api/search-filter-table/get-search-filter-table-for-donor?page=${page}&limit=${limit}`,
+        data,
+        { withCredentials: true }
+      );
+      setFoods(result.data.data.foodDonations);
+      setPagination(result.data.data.pagination);
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        console.error("Error searching food:", error);
+        setResult(undefined);
+        setError(error.response?.data as ApiError);
+      }
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white p-4 mt-14 sm:mt-14 md:mt-18">
       <LoadingScreen isLoading={isLoading.isLoading} text={isLoading.text} />
@@ -654,6 +694,28 @@ function DonorDashboard() {
             Table Overview
           </h3>
         </div>
+        <SearchFilterTable
+          fields={[
+            { label: "Food name", key: "foodName", type: "text" },
+            {
+              label: "Status",
+              key: "status",
+              type: "select",
+              options: ["PENDING", "ACCEPTED", "COLLECTED", "DELIVERED"],
+            },
+            { label: "Made Date of food after", key: "madeDate", type: "date" },
+          ]}
+          onSearch={(data) => {
+            setSearchFilterTableData(data);
+            handleSearchFilterTable(data, 1, 10);
+          }}
+          onClear={() => {
+            setIsSearchTableOn(false);
+            setFoods(undefined);
+            setPagination(getVisitedPagesData(visitedPagesDonor));
+            fetchDonorDashboard(1, 10);
+          }}
+        />
         <DashboardTable
           data={filteredFoods || []}
           pagination={pagination}
@@ -706,13 +768,31 @@ function DonorDashboard() {
               color: "bg-red-500 text-white",
             },
           }}
-          onPageChange={(newPage) => fetchDonorDashboard(newPage, 10)}
+          onPageChange={(newPage) => {
+            if (isSearchTableOn) {
+              handleSearchFilterTable(searchFilterTableData, newPage, 10);
+              return;
+            }
+            fetchDonorDashboard(newPage, 10);
+          }}
           who="DONOR"
         />
       </div>
       {isEditModeOpen && thingValue && (
         <EditBox
           data={thingValue}
+          isNullValuesAllowed={false}
+          readOnlyFields={[
+            "_id",
+            "foodImage",
+            "foodType",
+            "foodDeliverAddress",
+            "status",
+            "madeDate",
+            "expiryDate",
+            "latitude",
+            "longitude",
+          ]}
           actions={{
             update: { label: "Update", color: "bg-green-500" },
             cancel: {

@@ -539,7 +539,8 @@ function Donate() {
                 }
                 onClick={() => {
                   setAlertConfirmMessage({
-                    message: "Proceed to donate food?",
+                    message:
+                      "Proceed to donate food? You can't change some fields after adding the foood.",
                     messageType: "info",
                     cancelText: "Cancel",
                     confirmText: "Donate",

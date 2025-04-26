@@ -4,6 +4,10 @@ const PaginationContext = react.createContext<{
   visitedPagesDonor: Set<number>;
   visitedPagesServiceWorker: Set<number>;
   visitedPagesFood: Set<number>;
+  getVisitedPagesData: (visitedPage: Set<number>) => {
+    page: number;
+    totalPages: number;
+  };
   addVisitedPagesDonor: (page: number) => void;
   deleteVisitedPagesDonor: (page: number) => void;
   clearVisitedPagesDonor: () => void;

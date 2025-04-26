@@ -235,6 +235,8 @@ export const foodDeliveryAcceptFromNearbyPlace = async (req, res) => {
             return ApiError(res, 500, "Failed to add food to place", "error");
         }
         food.foodDeliverAddress = place.placeAddress;
+        food.foodDeliverLatitude = place.latitude;
+        food.foodDeliverLongitude = place.longitude;
         await food.save();
 
         return ApiResponse(res, 200, "Food delivery address added successfully.", food, "success");
@@ -257,6 +259,8 @@ export const foodDeliveryCollect = async (req, res) => {
             return ApiError(res, 400, "Food not accepted yet", "info");
         }
         food.status = "COLLECTED";
+        food.latitude = req.body.lat;
+        food.longitude = req.body.lng;
         await food.save();
 
         const delivery = await FoodDelivery.findOne({ food: food._id });

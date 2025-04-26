@@ -15,6 +15,6 @@ declare module "leaflet" {
       fitSelectedRoutes?: boolean;
     }
 
-    function control(options: RoutingControlOptions): L.Routing.Control;
+    function control(options: RoutingControlOptions): L.Control;
   }
 }

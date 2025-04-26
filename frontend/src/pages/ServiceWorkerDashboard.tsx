@@ -23,6 +23,7 @@ import {
   clearAllCounts,
   setServiceWorkerStateCounts,
 } from "@/features/dashboardData/count";
+import { SearchFilterTable } from "@/components/SearchFilterTable";
 
 function ServiceWorkerDashboard() {
   const navigate = useNavigate();
@@ -55,6 +56,18 @@ function ServiceWorkerDashboard() {
     | "NON_VEGETARIAN"
     | "VEGAN";
 
+  const [workerLocation, setWorkerLocation] = useState<{
+    workerId: string;
+    workerName: string;
+    lat: number;
+    lng: number;
+  }>({
+    workerId: "",
+    workerName: "",
+    lat: 0,
+    lng: 0,
+  });
+
   const [counts, setCounts] = useState<CountsType>({
     totalPendingFoodDeliveries: 0,
     totalAcceptedFoodDeliveries: 0,
@@ -72,6 +85,13 @@ function ServiceWorkerDashboard() {
     page: number;
     totalPages: number;
   }>({ page: 1, totalPages: 1 });
+
+  const [isSearchTableOn, setIsSearchTableOn] = useState(false);
+  const [searchFilterTableData, setSearchFilterTableData] = useState<{
+    name?: string;
+    status?: "PENDING" | "ACCEPTED" | "COLLECTED" | "DELIVERED";
+    startDate?: string;
+  } | null>(null);
 
   const dispatch = useDispatch();
   const [isLoading, setIsLoading] = useState<{
@@ -99,6 +119,7 @@ function ServiceWorkerDashboard() {
 
   const {
     visitedPagesServiceWorker,
+    getVisitedPagesData,
     addVisitedPagesServiceWorker,
     deleteVisitedPagesServiceWorker,
     clearVisitedPagesServiceWorker,
@@ -221,7 +242,7 @@ function ServiceWorkerDashboard() {
     try {
       const result = await axios.post(
         `${import.meta.env.VITE_BACKEND_ORIGIN_URL}/api/food/delivery-collect`,
-        { foodId },
+        { foodId, lat: workerLocation.lat, lng: workerLocation.lng },
         { withCredentials: true }
       );
       if (result.status === 200) {
@@ -316,6 +337,7 @@ function ServiceWorkerDashboard() {
     filterMapOfFoods[filterType] || (() => true)
   );
 
+  ////////// service worker socket events //////////
   const trackFoodEventAndUpdateState = useCallback(
     async (value: { foodId: string; eventType: string }) => {
       if (value.eventType === "INSERT") {
@@ -476,6 +498,7 @@ function ServiceWorkerDashboard() {
     };
   }, [trackFoodEventAndUpdateState, socket]);
 
+  //////////// donor socket events //////////
   const trackDonorEventAndUpdateState = useCallback(
     async (value: { donorId: string }) => {
       try {
@@ -532,6 +555,93 @@ function ServiceWorkerDashboard() {
       socket?.off("donorUpdated");
     };
   }, [socket, trackDonorEventAndUpdateState]);
+
+  ///////////// location tracking //////////
+  const intervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    const hasAcceptedFood = foods?.some(
+      (food: FoodType) => food.status === "ACCEPTED"
+    );
+
+    if (!hasAcceptedFood) {
+      console.log("No accepted food, skipping location tracking");
+      return;
+    }
+
+    if (!navigator.geolocation) {
+      console.error("Geolocation is not supported by this browser.");
+      return;
+    }
+
+    const sendLocation = () => {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const locationData = {
+            workerId: serviceWorkerData?._id,
+            workerName: serviceWorkerData?.name,
+            lat: position.coords.latitude,
+            lng: position.coords.longitude,
+          };
+          setWorkerLocation({
+            workerId: serviceWorkerData?._id || "",
+            workerName: serviceWorkerData?.name || "",
+            lat: position.coords.latitude,
+            lng: position.coords.longitude,
+          });
+          socket?.emit("workerLocationUpdate", locationData);
+        },
+        (error) => {
+          console.error("Error getting location:", error);
+        },
+        {
+          enableHighAccuracy: true,
+          timeout: 10000,
+        }
+      );
+    };
+
+    sendLocation();
+    intervalRef.current = setInterval(sendLocation, 4000);
+
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+      }
+    };
+  }, [foods, serviceWorkerData?._id, serviceWorkerData?.name, socket]);
+
+  interface SearchFilterData {
+    foodName?: string;
+    donorName?: string;
+    status?: "PENDING" | "ACCEPTED" | "COLLECTED" | "DELIVERED";
+    startDate?: string;
+  }
+
+  const handleSearchFilterTable = async (
+    data: SearchFilterData | null,
+    page: number,
+    limit: number
+  ) => {
+    setIsSearchTableOn(true);
+    try {
+      const result = await axios.post(
+        `${
+          import.meta.env.VITE_BACKEND_ORIGIN_URL
+        }/api/search-filter-table/get-search-filter-table-for-service-worker?page=${page}&limit=${limit}`,
+        data,
+        { withCredentials: true }
+      );
+      setFoods(result.data.data.foodDonations);
+      setPagination(result.data.data.pagination);
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        console.error("Error searching food:", error);
+        setResult(undefined);
+        setError(error.response?.data as ApiError);
+      }
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white p-4 mt-14 sm:mt-14 md:mt-18">
@@ -696,8 +806,31 @@ function ServiceWorkerDashboard() {
           Icon={Settings2}
         />
       </div>
-      <h2 className="text-2xl font-bold mt-6">Table Overview</h2>
+      <h2 className="text-2xl font-bold mt-6 text-center">Table Overview</h2>
       <div className="overflow-x-auto mt-4">
+        <SearchFilterTable
+          fields={[
+            { label: "Food name", key: "foodName", type: "text" },
+            { label: "Donor name", key: "donorName", type: "text" },
+            {
+              label: "Status",
+              key: "status",
+              type: "select",
+              options: ["PENDING", "ACCEPTED", "COLLECTED", "DELIVERED"],
+            },
+            { label: "Made date of food After", key: "madeDate", type: "date" },
+          ]}
+          onSearch={(data) => {
+            setSearchFilterTableData(data);
+            handleSearchFilterTable(data, 1, 10);
+          }}
+          onClear={() => {
+            setIsSearchTableOn(false);
+            setFoods(undefined);
+            setPagination(getVisitedPagesData(visitedPagesServiceWorker));
+            fetchServiceWorkerDashboard(1, 10);
+          }}
+        />
         <DashboardTable
           data={filteredFoods || []}
           pagination={pagination}
@@ -713,16 +846,57 @@ function ServiceWorkerDashboard() {
                   : "Completed",
               handler: (values) => {
                 const food = values as FoodType;
-                if (food.status === "PENDING") handleAcceptDelivery(food._id);
-                if (food.status === "ACCEPTED") handleCollectDelivery(food._id);
-                if (food.status === "COLLECTED")
-                  handleCompleteDelivered(food._id);
+                if (food.status === "PENDING") {
+                  setAlertConfirmMessage({
+                    message: "Are you sure you want to accept delivery?",
+                    messageType: "info",
+                    cancelText: "Cancel",
+                    confirmText: "Accept",
+                    onConfirm: () => {
+                      setAlertConfirmMessage(null);
+                      handleAcceptDelivery(food._id);
+                    },
+                    onCancel: () => setAlertConfirmMessage(null),
+                  });
+                }
+                if (food.status === "ACCEPTED") {
+                  setAlertConfirmMessage({
+                    message: "Are you sure you want to collect delivery?",
+                    messageType: "info",
+                    cancelText: "Cancel",
+                    confirmText: "Collect",
+                    onConfirm: () => {
+                      setAlertConfirmMessage(null);
+                      handleCollectDelivery(food._id);
+                    },
+                    onCancel: () => setAlertConfirmMessage(null),
+                  });
+                }
+                if (food.status === "COLLECTED") {
+                  setAlertConfirmMessage({
+                    message: "Are you sure you want to mark delivery?",
+                    messageType: "info",
+                    cancelText: "Cancel",
+                    confirmText: "Mark Delivered",
+                    onConfirm: () => {
+                      setAlertConfirmMessage(null);
+                      handleCompleteDelivered(food._id);
+                    },
+                    onCancel: () => setAlertConfirmMessage(null),
+                  });
+                }
                 if (food.status === "DELIVERED") return;
               },
               color: "bg-green-500 text-white",
             },
           }}
-          onPageChange={(newPage) => fetchServiceWorkerDashboard(newPage)}
+          onPageChange={(newPage) => {
+            if (isSearchTableOn) {
+              handleSearchFilterTable(searchFilterTableData, newPage, 10);
+              return;
+            }
+            fetchServiceWorkerDashboard(newPage);
+          }}
           who="SERVICE"
         />
       </div>

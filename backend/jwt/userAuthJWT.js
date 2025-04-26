@@ -71,10 +71,9 @@ export function whoIsAllowed(userType) {
             }
 
             if (user.role !== userType) {
-                res.clearCookie("token");
                 return res
                     .status(403)
-                    .json({ success: false, message: "You are not authorized to access this page", messageType: "warning", who: user.role, unAuthorized: true });
+                    .json({ success: false, message: "You are not authorized to access this thing", messageType: "warning", who: user.role, unAuthorized: true });
             }
 
             req.user = user;

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useLocation } from "react-router-dom";
 import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
@@ -18,23 +18,34 @@ type Coordinates = {
 
 const Routing = ({ from, to }: { from: Coordinates; to: Coordinates }) => {
   const map = useMap();
+  const routingControlRef = useRef<ReturnType<typeof L.Routing.control> | null>(
+    null
+  );
 
   useEffect(() => {
-    const routingControl = L.Routing.control({
-      waypoints: [L.latLng(from.lat, from.lng), L.latLng(to.lat, to.lng)],
-      routeWhileDragging: false,
-      show: false,
-      addWaypoints: false,
-      draggableWaypoints: false,
-      fitSelectedRoutes: true,
-    }).addTo(map);
+    if (!map) return;
+
+    if (!routingControlRef.current) {
+      routingControlRef.current = L.Routing.control({
+        waypoints: [L.latLng(from.lat, from.lng), L.latLng(to.lat, to.lng)],
+        routeWhileDragging: false,
+        show: false,
+        addWaypoints: false,
+        draggableWaypoints: false,
+        fitSelectedRoutes: true,
+      }).addTo(map);
+    } else {
+      routingControlRef.current.setWaypoints([
+        L.latLng(from.lat, from.lng),
+        L.latLng(to.lat, to.lng),
+      ]);
+    }
 
     return () => {
-      if (map && routingControl) {
-        map.removeControl(routingControl);
-      }
+      // Optional cleanup on unmount
+      // map.removeControl(routingControlRef.current!);
     };
-  }, [from, to, map]);
+  }, [from.lat, from.lng, to.lat, to.lng, map]);
 
   return null;
 };
@@ -125,22 +136,27 @@ const TrackFood = () => {
     workingFunction();
   }, [workingFunction]);
 
-  useEffect(() => {
-    socket?.on(
-      "worker-location-update",
-      (data: { lat: number; lng: number }) => {
-        setWorkerLocation({ lat: data.lat, lng: data.lng });
-      }
-    );
+  const handleLocationUpdate = (data: {
+    lat: number;
+    lng: number;
+    workerId: string;
+    workerName: string;
+  }) => {
+    setWorkerLocation({ lat: data.lat, lng: data.lng });
+  };
 
+  useEffect(() => {
+    socket?.on("workerLocationUpdate", handleLocationUpdate);
     return () => {
-      socket?.off("worker-location-update");
+      socket?.off("workerLocationUpdate", handleLocationUpdate);
     };
   }, [socket]);
 
-  const renderMap = () => {
-    if (!destinationLocation || !workerLocation) {
-      return (
+  return (
+    <div className="p-4">
+      <h1 className="text-2xl font-bold mb-4">Tracking Food</h1>
+
+      {!destinationLocation || !workerLocation ? (
         <div className="flex flex-col items-center justify-center h-[60vh] text-center space-y-4">
           <img
             src={mapError}
@@ -156,44 +172,39 @@ const TrackFood = () => {
             Please check your network or try again later.
           </p>
         </div>
-      );
-    }
-
-    return (
-      <MapContainer
-        center={destinationLocation}
-        zoom={13}
-        scrollWheelZoom={true}
-        className="h-[80vh] w-full rounded-md z-0"
-      >
-        <TileLayer
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-          attribution="&copy; OpenStreetMap contributors"
-        />
-        <Marker
-          position={destinationLocation}
-          icon={L.icon({ iconUrl: foodIcon, iconSize: [32, 32] })}
-          title="Destination"
+      ) : (
+        <MapContainer
+          center={destinationLocation}
+          zoom={13}
+          scrollWheelZoom={true}
+          className="h-[80vh] w-full rounded-md z-0"
         >
-          <Popup>{destinationLabel}</Popup>
-        </Marker>
-        <Marker
-          position={workerLocation}
-          icon={L.icon({ iconUrl: serviceWorkerIcon, iconSize: [32, 32] })}
-          title="Service Worker Location"
-        >
-          <Popup>{workerName}</Popup>
-        </Marker>
+          <TileLayer
+            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+            attribution="&copy; OpenStreetMap contributors"
+          />
 
-        <Routing from={workerLocation} to={destinationLocation} />
-      </MapContainer>
-    );
-  };
+          <Marker
+            key={`dest-${destinationLocation.lat}-${destinationLocation.lng}`}
+            position={destinationLocation}
+            icon={L.icon({ iconUrl: foodIcon, iconSize: [32, 32] })}
+            title="Destination"
+          >
+            <Popup>{destinationLabel}</Popup>
+          </Marker>
 
-  return (
-    <div className="p-4">
-      <h1 className="text-2xl font-bold mb-4">Tracking Food</h1>
-      {renderMap()}
+          <Marker
+            key={`worker-${workerLocation.lat}-${workerLocation.lng}`}
+            position={workerLocation}
+            icon={L.icon({ iconUrl: serviceWorkerIcon, iconSize: [32, 32] })}
+            title="Service Worker Location"
+          >
+            <Popup>{workerName}</Popup>
+          </Marker>
+
+          <Routing from={workerLocation} to={destinationLocation} />
+        </MapContainer>
+      )}
     </div>
   );
 };

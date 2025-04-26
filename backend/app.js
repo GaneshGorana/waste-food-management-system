@@ -15,6 +15,7 @@ import { trackFoodChanges } from "./events/foodDbChangeEvents.js";
 import getDataById from "./routes/getDataById.js";
 import getCountById from "./routes/getCountById.js"
 import refreshCookie from "./routes/refreshCookie.js"
+import searchFilterTableRoutes from "./routes/searchFilterTableRoute.js"
 import getAccountDataById from "./routes/getAccountDataById.js"
 import { trackServiceWorkerChanges } from "./events/serviceWorkerDbChangeEvents.js";
 
@@ -40,6 +41,9 @@ dbConnection().then(() => {
     console.log('Database connection error', err);
 });
 io.on('connection', (socket) => {
+    socket.on("workerLocationUpdate", (data) => {
+        socket.broadcast.emit("workerLocationUpdate", data);
+    });
 
 });
 app.use(express.json());
@@ -67,6 +71,7 @@ app.use('/api/refresh-cookie', refreshCookie);
 app.use('/api/data', getDataById);
 app.use('/api/count', getCountById);
 app.use('/api/get-account-data', getAccountDataById);
+app.use('/api/search-filter-table', searchFilterTableRoutes)
 
 //server
 const PORT = process.env.PORT;

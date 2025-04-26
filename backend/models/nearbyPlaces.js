@@ -24,10 +24,20 @@ const nearbyPlacesSchema = new mongoose.Schema({
     worker: {
         type: mongoose.Schema.Types.ObjectId,
         ref: "ServiceWorker",
+        default: null,
     },
     food: {
         type: mongoose.Schema.Types.ObjectId,
         ref: "Food",
+        default: null,
+    },
+    latitude: {
+        type: Number,
+        default: 0,
+    },
+    longitude: {
+        type: Number,
+        default: 0,
     },
 
 }, { timestamps: true });

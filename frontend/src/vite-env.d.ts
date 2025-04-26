@@ -64,7 +64,7 @@ interface ErrorType {
   messageType: string;
 }
 
-type NearByPlaces = {
+type NearByPlacesType = {
   _id: string;
   placeName: string;
   placeState: string;
@@ -72,7 +72,8 @@ type NearByPlaces = {
   placeAddress: string;
   placePincode: number;
   isFoodDelivered: boolean;
-  worker: string;
-  food: string;
-  organization: string;
+  worker?: string;
+  food?: string;
+  latitude: number;
+  longitude: number;
 };

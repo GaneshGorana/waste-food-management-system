@@ -317,6 +317,14 @@ export const getDataByIdOfFoodForAdmin = async (req, res) => {
                 }
             },
             {
+                $lookup: {
+                    from: "users",
+                    localField: "donorId",
+                    foreignField: "_id",
+                    as: "donor"
+                },
+            },
+            {
                 $project: {
                     _id: 1,
                     foodName: 1,
@@ -330,11 +338,18 @@ export const getDataByIdOfFoodForAdmin = async (req, res) => {
                     madeDate: 1,
                     expiryDate: 1,
                     status: 1,
-                    acceptedBy: {
-                        $ifNull: [{ $arrayElemAt: ["$acceptedBy.name", 0] }, null]
-                    },
+                    donorId: { $ifNull: [{ $arrayElemAt: ["$donor._id", 0] }, null] },
+                    donorName: { $ifNull: [{ $arrayElemAt: ["$donor.name", 0] }, null] },
+                    donorEmail: { $ifNull: [{ $arrayElemAt: ["$donor.email", 0] }, null] },
+                    donorAddress: { $ifNull: [{ $arrayElemAt: ["$donor.address", 0] }, null] },
                     acceptedById: {
                         $ifNull: [{ $arrayElemAt: ["$acceptedBy._id", 0] }, null]
+                    },
+                    acceptedByName: {
+                        $ifNull: [{ $arrayElemAt: ["$acceptedBy.name", 0] }, null]
+                    },
+                    acceptedByEmail: {
+                        $ifNull: [{ $arrayElemAt: ["$acceptedBy.email", 0] }, null]
                     },
                     latitude: 1,
                     longitude: 1,

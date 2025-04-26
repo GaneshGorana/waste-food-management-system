@@ -6,6 +6,7 @@ import {
   PanelRightClose,
 } from "lucide-react";
 import AlertConfirmBox from "./AlertConfirmBox";
+import "../assets/css/imageShowAnimation.css";
 
 type DashboardTablePropTypes<T> = {
   data: T[];
@@ -50,7 +51,7 @@ const DashboardTable = memo(
     const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
     if (!Array.isArray(data) || data.length === 0) {
-      return <p className="text-center text-gray-500">No Data Available</p>;
+      return <p className="text-center text-gray-500">No Data Found</p>;
     }
 
     const columns = Object.keys(data[0])
@@ -204,12 +205,18 @@ const DashboardTable = memo(
                               if (
                                 !row.latitude ||
                                 !row.longitude ||
-                                row.acceptedById == null
+                                row.acceptedById == null ||
+                                row.status === "COLLECTED" ||
+                                row.status === "DELIVERED"
                               ) {
                                 setAlertConfirmMessage({
                                   message:
                                     row.acceptedById == null
                                       ? "Food is not accepted yet"
+                                      : row.status === "COLLECTED"
+                                      ? "Food is collected."
+                                      : row.status === "DELIVERED"
+                                      ? "Food is delivered"
                                       : "No pickup coordinates available.",
                                   messageType: "error",
                                   cancelText: "Close",
@@ -251,12 +258,18 @@ const DashboardTable = memo(
                                 !coord ||
                                 !row.latitude ||
                                 !row.longitude ||
-                                row.acceptedById == null
+                                row.acceptedById == null ||
+                                row.status === "COLLECTED" ||
+                                row.status === "DELIVERED"
                               ) {
                                 setAlertConfirmMessage({
                                   message:
                                     row.acceptedById == null
                                       ? "Food is not accepted yet"
+                                      : row.status === "ACCEPTED"
+                                      ? "Food is accepted, try after when it is collected."
+                                      : row.status === "DELIVERED"
+                                      ? "Food is delivered"
                                       : "No delivery address available.",
                                   messageType: "error",
                                   cancelText: "Close",
@@ -356,16 +369,22 @@ const DashboardTable = memo(
           />
         )}
         {selectedImage && (
-          <div className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm flex items-center justify-center">
-            <div className="relative">
+          <div
+            className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm flex items-center justify-center transition-opacity duration-300 ease-in-out opacity-100"
+            onClick={() => setSelectedImage(null)}
+          >
+            <div
+              className="relative animate-scale-in"
+              onClick={(e) => e.stopPropagation()}
+            >
               <img
                 src={selectedImage}
                 alt="Preview"
-                className="max-h-[90vh] w-auto rounded-lg shadow-xl transition-transform duration-300"
+                className="max-h-[90vh] w-auto rounded-lg shadow-xl"
               />
               <button
                 onClick={() => setSelectedImage(null)}
-                className="cursor-pointer absolute top-2 right-2 bg-red-600 hover:bg-red-700 text-white rounded-full w-8 h-8 flex items-center justify-center shadow-md"
+                className="cursor-pointer absolute top-2 right-2 bg-red-600 hover:bg-red-700 text-white rounded-full w-8 h-8 flex items-center justify-center shadow-md transition-transform duration-300 ease-in-out transform hover:scale-110"
               >
                 ✕
               </button>

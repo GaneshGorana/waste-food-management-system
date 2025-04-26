@@ -51,6 +51,9 @@ export const workerLogin = async (req, res) => {
         if (!isMatch) {
             return ApiError(res, 400, "Invalid credentials", "warning")
         }
+        worker.latitude = req.body.lat;
+        worker.longitude = req.body.lng;
+        await worker.save();
         const token = setUser(worker);
         if (token.error) {
             return ApiError(res, 500, token.error)
@@ -81,6 +84,30 @@ export const workerUpdate = async (req, res) => {
     } catch (err) {
         console.log("worker update process error :");
         return ApiError(res, 400, "Error in worker update", "error")
+    }
+}
+
+export const workerUpdatePassword = async (req, res) => {
+    if (!req.body) {
+        return ApiError(res, 400, "Please provide worker details", "warning")
+    }
+    const { oldPassword, newPassword } = req.body;
+    try {
+        const worker = await ServiceWorker.findById(req.user._id);
+        if (!worker) {
+            return ApiError(res, 400, "Service worker not found", "info")
+        }
+        const isMatch = await bcrypt.compare(oldPassword, worker.password);
+        if (!isMatch) {
+            return ApiError(res, 400, "Invalid credentials", "warning")
+        }
+        const hashedPassword = await bcrypt.hash(newPassword, 10);
+        await ServiceWorker.findByIdAndUpdate(req.user._id, { password: hashedPassword });
+
+        return ApiResponse(res, 200, "Password updated successfully", null, "success")
+    } catch (err) {
+        console.log("worker password update process error :");
+        return ApiError(res, 400, "Error in worker password update", "error")
     }
 }
 

@@ -46,7 +46,7 @@ const DashboardCard = ({
       {showDropdown && dropdownItems.length > 0 && (
         <div className="absolute top-3 right-3">
           {dropdownOpen && (
-            <div className="absolute right-0 mt-2 w-40 bg-white dark:bg-gray-700 shadow-lg rounded-md z-10">
+            <div className="absolute right-0 mt-2 w-40 bg-white dark:bg-gray-700 shadow-lg rounded-md">
               {dropdownItems.map((item, index) => (
                 <button
                   key={index}

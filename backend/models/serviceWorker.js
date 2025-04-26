@@ -13,8 +13,8 @@ const serviceWorkerSchema = new mongoose.Schema({
     password: { type: String, required: true },
     role: { type: String, default: "SERVICE" },
     accountStatus: { type: String, enum: ['ACTIVE', 'INACTIVE'], default: 'INACTIVE' },
-    latitude: { type: Number, required: true },
-    longitude: { type: Number, required: true },
+    latitude: { type: Number, default: 0 },
+    longitude: { type: Number, default: 0 },
 }, { timestamps: true });
 
 serviceWorkerSchema.pre('save', async function (next) {
