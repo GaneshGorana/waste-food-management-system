@@ -14,17 +14,17 @@ import {
   deleteFood,
   clearDataFood,
   updateServiceWorkerDetailsInFood,
-} from "../features/dashboardData/food.js";
-import { RootState } from "@/store/foodStore.js";
-import LoadingScreen from "@/components/LoadingScreen.js";
-import AlertConfirmBox from "@/components/AlertConfirmBox.js";
+} from "../features/dashboardData/food.ts";
+import { RootState } from "@/store/foodStore.ts";
+import LoadingScreen from "@/components/LoadingScreen.tsx";
+import AlertConfirmBox from "@/components/AlertConfirmBox.tsx";
 import { jwtDecode } from "jwt-decode";
-import { usePagination } from "@/hooks/usePagination.js";
+import { usePagination } from "@/hooks/usePagination.ts";
 import {
   clearAllCounts,
   setDonorStateCounts,
-} from "@/features/dashboardData/count.js";
-import { SearchFilterTable } from "@/components/SearchFilterTable.js";
+} from "@/features/dashboardData/count.ts";
+import { SearchFilterTable } from "@/components/SearchFilterTable.tsx";
 
 function DonorDashboard() {
   const navigate = useNavigate();

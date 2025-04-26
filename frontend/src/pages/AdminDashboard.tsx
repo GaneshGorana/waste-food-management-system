@@ -10,7 +10,7 @@ import DashboardCard from "@/components/DashboardCard.tsx";
 import DashboardValueUpdater from "@/components/DashboardValueUpdater.tsx";
 import AlertConfirmBox from "@/components/AlertConfirmBox.tsx";
 import { useSelector, useDispatch } from "react-redux";
-import LoadingScreen from "@/components/LoadingScreen.ts";
+import LoadingScreen from "@/components/LoadingScreen.tsx";
 import { RootState } from "@/store/foodStore.ts";
 import {
   addDonor,
