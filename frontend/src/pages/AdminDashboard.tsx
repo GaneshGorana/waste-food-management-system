@@ -3,15 +3,15 @@ import { useNavigate } from "react-router-dom";
 import { useSocket } from "@/hooks/useSocket.js";
 import axios from "axios";
 import { Settings, Settings2, X } from "lucide-react";
-import EditBox from "../components/EditBox.jsx";
-import AlertBox from "@/components/AlertBox.jsx";
-import DashboardTable from "@/components/DashboardTable.jsx";
-import DashboardCard from "@/components/DashboardCard.jsx";
-import DashboardValueUpdater from "@/components/DashboardValueUpdater.jsx";
-import AlertConfirmBox from "@/components/AlertConfirmBox.jsx";
+import EditBox from "../components/EditBox.tsx";
+import AlertBox from "@/components/AlertBox.tsx";
+import DashboardTable from "@/components/DashboardTable.tsx";
+import DashboardCard from "@/components/DashboardCard.tsx";
+import DashboardValueUpdater from "@/components/DashboardValueUpdater.tsx";
+import AlertConfirmBox from "@/components/AlertConfirmBox.tsx";
 import { useSelector, useDispatch } from "react-redux";
-import LoadingScreen from "@/components/LoadingScreen.js";
-import { RootState } from "@/store/foodStore.js";
+import LoadingScreen from "@/components/LoadingScreen.ts";
+import { RootState } from "@/store/foodStore.ts";
 import {
   addDonor,
   clearDataDonor,
