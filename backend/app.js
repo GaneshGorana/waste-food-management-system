@@ -22,13 +22,24 @@ import { trackServiceWorkerChanges } from "./events/serviceWorkerDbChangeEvents.
 // config and settings
 configDotenv()
 
-//data decoding
 const app = express();
+//cors
+app.use(cors({
+    origin: process.env.FRONTEND_URL,
+    credentials: true,
+}))
+
+app.get('/', (req, res) => {
+    return res.json({ message: "API is working" })
+})
+
+//data decoding
+
 const server = http.createServer(app);
 const io = new Server(server, {
     cors: {
         origin: process.env.FRONTEND_URL,
-        credentials: true
+        credentials: true,
     }
 });
 
@@ -49,11 +60,6 @@ io.on('connection', (socket) => {
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-//cors
-app.use(cors({
-    origin: process.env.FRONTEND_URL,
-    credentials: true,
-}))
 
 
 //routes
