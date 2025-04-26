@@ -16,7 +16,7 @@
     "moduleResolution": "bundler",
     "allowImportingTsExtensions": true,
     "isolatedModules": true,
-    "moduleDetection": "force",
+    "moduleDetection": "auto",
     "emitDeclarationOnly": true,
     "jsx": "react-jsx",
     "allowJs": true,
@@ -30,5 +30,10 @@
     "noFallthroughCasesInSwitch": true,
     "noUncheckedSideEffectImports": true
   },
-  "include": ["vite.config.ts", "vite-env.d.ts", "src/**/*.ts", "src/**/*.tsx"]
+  "include": [
+    "./vite.config.ts",
+    "./vite-env.d.ts",
+    "./src/**/*.ts",
+    "./src/**/*.tsx"
+  ]
 }
