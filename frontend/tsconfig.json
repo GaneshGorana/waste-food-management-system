@@ -20,5 +20,5 @@
     "outDir": "./dist"
   },
   "include": ["./src/**/*.ts", "./src/**/*.tsx", "./src/**/*.js"],
-  "exclude": ["node_modules", "dist", "**/*.d.ts"]
+  "exclude": ["node_modules", "src/**/*.d.ts"]
 }
