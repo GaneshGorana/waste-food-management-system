@@ -16,8 +16,14 @@
     "allowSyntheticDefaultImports": true,
     "declaration": false,
     "emitDeclarationOnly": false,
+    "noEmit": true,
     "outDir": "./dist"
   },
-  "exclude": ["./src/**/*.d.ts"],
-  "include": ["./src/**/*.ts", "./src/**/*.tsx", "./src/**/*.js"]
+  "include": [
+    "vite-env.d.ts",
+    "./src/**/*.ts",
+    "./src/**/*.tsx",
+    "./src/**/*.js"
+  ],
+  "exclude": ["node_modules"]
 }
