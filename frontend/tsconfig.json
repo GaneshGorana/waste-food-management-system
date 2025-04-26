@@ -16,9 +16,7 @@
     "allowSyntheticDefaultImports": true,
     "declaration": false,
     "emitDeclarationOnly": false,
-    "outDir": "./dist",
-    "allowImportingTsExtensions": true,
-    "noEmit": true
+    "outDir": "./dist"
   },
   "exclude": ["./src/**/*.d.ts"],
   "include": ["./src/**/*.ts", "./src/**/*.tsx", "./src/**/*.js"]
