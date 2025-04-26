@@ -18,6 +18,5 @@
     "emitDeclarationOnly": false,
     "outDir": "./dist"
   },
-  "exclude": ["./src/**/*.d.ts"],
   "include": ["./src/**/*.ts", "./src/**/*.tsx", "./src/**/*.js"]
 }
