@@ -10,7 +10,7 @@
     "moduleResolution": "bundler",
     "composite": true,
     "allowImportingTsExtensions": true,
-    "emitDeclarationOnly": true,
+    "emitDeclarationOnly": false,
     "isolatedModules": true,
     "moduleDetection": "force",
 
