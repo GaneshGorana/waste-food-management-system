@@ -10,7 +10,7 @@
     "moduleResolution": "bundler",
     "composite": true,
     "allowImportingTsExtensions": true,
-    "emitDeclarationOnly": false,
+    "noEmit": false,
     "isolatedModules": true,
     "moduleDetection": "force",
     "jsx": "react-jsx",

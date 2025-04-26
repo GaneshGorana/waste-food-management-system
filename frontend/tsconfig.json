@@ -14,9 +14,9 @@
     },
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
-    "declaration": false,
-    "emitDeclarationOnly": false,
+    "allowImportingTsExtensions": true,
     "noEmit": true,
+    "declaration": false,
     "outDir": "./dist"
   },
   "include": ["./src/**/*.ts", "./src/**/*.tsx", "./src/**/*.js"],
