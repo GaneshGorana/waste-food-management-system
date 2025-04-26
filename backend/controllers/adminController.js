@@ -40,7 +40,11 @@ export const adminLogin = async (req, res) => {
         if (token.error) {
             return ApiError(res, 500, token.error)
         }
-        res.cookie('token', token);
+        res.cookie('token', token, {
+            httpOnly: true,
+            secure: true,
+            sameSite: "None",
+        });
         return ApiResponse(res, 200, "Logged in successfully", null, "success")
     } catch (err) {
         console.log("admin login process error :");
