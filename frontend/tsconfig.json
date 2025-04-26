@@ -1,5 +1,5 @@
 {
-  "files": [],
+  "files": ["./src/vite-env.d.ts"],
   "references": [
     { "path": "./tsconfig.app.json" },
     { "path": "./tsconfig.node.json" }
@@ -19,11 +19,6 @@
     "noEmit": true,
     "outDir": "./dist"
   },
-  "include": [
-    "vite-env.d.ts",
-    "./src/**/*.ts",
-    "./src/**/*.tsx",
-    "./src/**/*.js"
-  ],
-  "exclude": ["node_modules"]
+  "include": ["./src/**/*.ts", "./src/**/*.tsx", "./src/**/*.js"],
+  "exclude": ["node_modules", "dist", "**/*.d.ts"]
 }
