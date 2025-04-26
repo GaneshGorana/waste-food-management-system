@@ -16,7 +16,7 @@ import {
   updateServiceWorkerDetailsInFood,
 } from "../features/dashboardData/food.ts";
 import { RootState } from "@/store/foodStore.ts";
-import LoadingScreen from "@/components/LoadingScreen.tsx";
+import LoadingScreen from "@/components/LoadingScreen";
 import AlertConfirmBox from "@/components/AlertConfirmBox.tsx";
 import { jwtDecode } from "jwt-decode";
 import { usePagination } from "@/hooks/usePagination.ts";

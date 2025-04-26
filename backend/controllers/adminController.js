@@ -41,8 +41,8 @@ export const adminLogin = async (req, res) => {
             return ApiError(res, 500, token.error)
         }
         res.cookie('token', token, {
-            httpOnly: true,
-            secure: true,
+            httpOnly: false,
+            secure: false,
             sameSite: "None",
         });
         return ApiResponse(res, 200, "Logged in successfully", null, "success")

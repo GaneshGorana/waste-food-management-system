@@ -10,34 +10,34 @@ import DashboardCard from "@/components/DashboardCard.tsx";
 import DashboardValueUpdater from "@/components/DashboardValueUpdater.tsx";
 import AlertConfirmBox from "@/components/AlertConfirmBox.tsx";
 import { useSelector, useDispatch } from "react-redux";
-import LoadingScreen from "@/components/LoadingScreen.tsx";
+import LoadingScreen from "@/components/LoadingScreen";
 import { RootState } from "@/store/foodStore.ts";
 import {
   addDonor,
   clearDataDonor,
   deleteDonor,
   updateDonor,
-} from "@/features/dashboardData/donor.js";
+} from "@/features/dashboardData/donor.ts";
 import {
   addFood,
   clearDataFood,
   deleteFood,
   updateFood,
-} from "@/features/dashboardData/food.js";
+} from "@/features/dashboardData/food.ts";
 import {
   addServiceWorker,
   clearDataServiceWorker,
   deleteServiceWorker,
   updateServiceWorker,
-} from "@/features/dashboardData/serviceWorker.js";
+} from "@/features/dashboardData/serviceWorker.ts";
 import { jwtDecode } from "jwt-decode";
-import { usePagination } from "@/hooks/usePagination.js";
+import { usePagination } from "@/hooks/usePagination.ts";
 import {
   setDonorStateCounts,
   setFoodStateCounts,
   setServiceWorkerStateCounts,
-} from "@/features/dashboardData/count.js";
-import { SearchFilterTable } from "@/components/SearchFilterTable.js";
+} from "@/features/dashboardData/count.ts";
+import { SearchFilterTable } from "@/components/SearchFilterTable.tsx";
 
 function AdminDashboard() {
   const navigate = useNavigate();
