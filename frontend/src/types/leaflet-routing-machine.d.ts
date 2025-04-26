@@ -15,6 +15,11 @@ declare module "leaflet" {
       fitSelectedRoutes?: boolean;
     }
 
-    function control(options: RoutingControlOptions): L.Control;
+    class Control extends L.Control {
+      constructor(options: RoutingControlOptions);
+      setWaypoints(waypoints: L.LatLng[]): void;
+    }
+
+    function control(options: RoutingControlOptions): Control;
   }
 }

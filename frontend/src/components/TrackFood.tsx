@@ -18,9 +18,7 @@ type Coordinates = {
 
 const Routing = ({ from, to }: { from: Coordinates; to: Coordinates }) => {
   const map = useMap();
-  const routingControlRef = useRef<ReturnType<typeof L.Routing.control> | null>(
-    null
-  );
+  const routingControlRef = useRef<L.Routing.Control | null>(null);
 
   useEffect(() => {
     if (!map) return;
